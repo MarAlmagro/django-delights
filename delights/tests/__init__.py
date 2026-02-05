@@ -1,0 +1,1 @@
+# Django Delights Test Suite

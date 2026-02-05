@@ -1,0 +1,50 @@
+{% extends "delights/base.html" %}
+
+{% block title %}Create Purchase - Django Delights{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-10 offset-md-1">
+        <h1>Create Purchase</h1>
+        <p class="lead">Select quantities of available dishes to purchase.</p>
+        
+        <form method="post">
+            {% csrf_token %}
+            <div class="card">
+                <div class="card-header">Available Dishes</div>
+                <div class="card-body">
+                    {% if available_dishes %}
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Dish Name</th>
+                                <th>Price</th>
+                                <th>Quantity</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for dish in available_dishes %}
+                            <tr>
+                                <td>{{ dish.name }}</td>
+                                <td>${{ dish.price|floatformat:2 }}</td>
+                                <td>
+                                    <input type="number" name="quantity_{{ dish.pk }}" 
+                                           class="form-control" min="0" value="0" style="width: 100px;">
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% else %}
+                    <p class="text-center">No available dishes found.</p>
+                    {% endif %}
+                </div>
+                <div class="card-footer">
+                    <button type="submit" class="btn btn-primary">Continue to Confirmation</button>
+                    <a href="{% url 'purchases:list' %}" class="btn btn-secondary">Cancel</a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

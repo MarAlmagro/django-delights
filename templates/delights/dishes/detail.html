@@ -1,0 +1,84 @@
+{% extends "delights/base.html" %}
+
+{% block title %}{{ dish.name }} - Django Delights{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <h1>{{ dish.name }}</h1>
+        {% if dish.description %}
+        <p class="lead">{{ dish.description }}</p>
+        {% endif %}
+        
+        <div class="card mb-4">
+            <div class="card-body">
+                <h5 class="card-title">Dish Information</h5>
+                <table class="table table-sm">
+                    <tr>
+                        <th>Cost:</th>
+                        <td>${{ dish.cost|floatformat:2 }}</td>
+                    </tr>
+                    <tr>
+                        <th>Price:</th>
+                        <td>${{ dish.price|floatformat:2 }}</td>
+                    </tr>
+                    <tr>
+                        <th>Availability:</th>
+                        <td>
+                            {% if dish.is_available %}
+                                <span class="badge bg-success">Available</span>
+                            {% else %}
+                                <span class="badge bg-danger">Unavailable</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Recipe Requirements</h5>
+                <a href="{% url 'dishes:requirements' dish.pk %}" class="btn btn-sm btn-primary">Manage Recipe</a>
+            </div>
+            <div class="card-body">
+                {% if recipe_requirements %}
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Ingredient</th>
+                            <th>Quantity Required</th>
+                            <th>Unit</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for requirement in recipe_requirements %}
+                        <tr>
+                            <td>{{ requirement.ingredient.name }}</td>
+                            <td>{{ requirement.quantity_required }}</td>
+                            <td>{{ requirement.ingredient.unit.name }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <p class="text-muted">No recipe requirements added yet. <a href="{% url 'dishes:requirements' dish.pk %}">Add ingredients</a></p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">Actions</div>
+            <div class="card-body">
+                <a href="{% url 'dishes:requirements' dish.pk %}" class="btn btn-primary w-100 mb-2">Edit Recipe</a>
+                {% if user.is_superuser %}
+                <a href="{% url 'dishes:edit' dish.pk %}" class="btn btn-warning w-100 mb-2">Edit Dish</a>
+                {% endif %}
+                <a href="{% url 'dishes:list' %}" class="btn btn-secondary w-100">Back to List</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

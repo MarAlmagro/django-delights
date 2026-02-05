@@ -1,0 +1,100 @@
+{% extends "delights/base.html" %}
+
+{% block title %}Dashboard - Django Delights{% endblock %}
+
+{% block content %}
+<h1>Admin Dashboard</h1>
+
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title">Total Revenue</h5>
+                <h2 class="text-success">${{ total_revenue|floatformat:2 }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title">Total Cost</h5>
+                <h2 class="text-danger">${{ total_cost|floatformat:2 }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title">Profit</h5>
+                <h2 class="{% if profit >= 0 %}text-success{% else %}text-danger{% endif %}">
+                    ${{ profit|floatformat:2 }}
+                </h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5>Top Selling Dishes</h5>
+            </div>
+            <div class="card-body">
+                {% if top_dishes %}
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Dish</th>
+                            <th>Total Sold</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for dish in top_dishes %}
+                        <tr>
+                            <td>{{ dish.name }}</td>
+                            <td>{{ dish.total_sold|default:0 }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <p class="text-muted">No sales data available.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5>Low Stock Ingredients</h5>
+            </div>
+            <div class="card-body">
+                {% if low_stock_ingredients %}
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Ingredient</th>
+                            <th>Quantity Available</th>
+                            <th>Unit</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for ingredient in low_stock_ingredients %}
+                        <tr>
+                            <td>{{ ingredient.name }}</td>
+                            <td>{{ ingredient.quantity_available }}</td>
+                            <td>{{ ingredient.unit.name }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <p class="text-muted">All ingredients are well stocked.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

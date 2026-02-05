@@ -1,0 +1,53 @@
+{% extends "delights/base.html" %}
+
+{% block title %}Confirm Purchase - Django Delights{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-10 offset-md-1">
+        <h1>Confirm Purchase</h1>
+        <p class="lead">Please review your purchase before finalizing.</p>
+        
+        <div class="card mb-4">
+            <div class="card-header">Purchase Summary</div>
+            <div class="card-body">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Dish</th>
+                            <th>Quantity</th>
+                            <th>Price per Unit</th>
+                            <th>Subtotal</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in purchase_items %}
+                        <tr>
+                            <td>{{ item.dish.name }}</td>
+                            <td>{{ item.quantity }}</td>
+                            <td>${{ item.price|floatformat:2 }}</td>
+                            <td>${{ item.subtotal|floatformat:2 }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <th colspan="3" class="text-end">Total:</th>
+                            <th>${{ purchase_total|floatformat:2 }}</th>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+        
+        <form method="post" action="{% url 'purchases:finalize' %}">
+            {% csrf_token %}
+            <div class="d-flex justify-content-between">
+                <a href="{% url 'purchases:add' %}" class="btn btn-secondary">Go Back</a>
+                <button type="submit" class="btn btn-success btn-lg">Confirm Purchase</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+

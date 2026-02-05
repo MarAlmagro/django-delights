@@ -1,0 +1,42 @@
+{% extends "delights/base.html" %}
+
+{% block title %}Edit Menu - Django Delights{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 offset-md-2">
+        <h1>Edit Menu: {{ object.name }}</h1>
+        <form method="post">
+            {% csrf_token %}
+            <div class="mb-3">
+                <label for="{{ form.name.id_for_label }}" class="form-label">Name</label>
+                {{ form.name }}
+                {% if form.name.errors %}
+                    <div class="text-danger">{{ form.name.errors }}</div>
+                {% endif %}
+            </div>
+            <div class="mb-3">
+                <label for="{{ form.description.id_for_label }}" class="form-label">Description</label>
+                {{ form.description }}
+                {% if form.description.errors %}
+                    <div class="text-danger">{{ form.description.errors }}</div>
+                {% endif %}
+            </div>
+            <div class="mb-3">
+                <label for="{{ form.price.id_for_label }}" class="form-label">Price</label>
+                <div class="input-group">
+                    <span class="input-group-text">$</span>
+                    {{ form.price }}
+                </div>
+                <small class="form-text text-muted">Current cost: ${{ object.cost|floatformat:2 }}</small>
+                {% if form.price.errors %}
+                    <div class="text-danger">{{ form.price.errors }}</div>
+                {% endif %}
+            </div>
+            <button type="submit" class="btn btn-primary">Update Menu</button>
+            <a href="{% url 'menus:detail' object.pk %}" class="btn btn-secondary">Cancel</a>
+        </form>
+    </div>
+</div>
+{% endblock %}
+

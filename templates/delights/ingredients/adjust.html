@@ -1,0 +1,34 @@
+{% extends "delights/base.html" %}
+
+{% block title %}Adjust Inventory - Django Delights{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 offset-md-2">
+        <h1>Adjust Inventory: {{ ingredient.name }}</h1>
+        <div class="alert alert-info mb-4">
+            <strong>Current Quantity:</strong> {{ ingredient.quantity_available }} {{ ingredient.unit.name }}<br>
+            <small>Enter a positive number to add inventory, or a negative number to subtract.</small>
+        </div>
+        <form method="post">
+            {% csrf_token %}
+            <div class="mb-3">
+                <label for="{{ form.adjustment.id_for_label }}" class="form-label">Adjustment</label>
+                <div class="input-group">
+                    <span class="input-group-text">{{ ingredient.unit.name }}</span>
+                    {{ form.adjustment }}
+                </div>
+                {% if form.adjustment.help_text %}
+                    <small class="form-text text-muted">{{ form.adjustment.help_text }}</small>
+                {% endif %}
+                {% if form.adjustment.errors %}
+                    <div class="text-danger">{{ form.adjustment.errors }}</div>
+                {% endif %}
+            </div>
+            <button type="submit" class="btn btn-primary">Apply Adjustment</button>
+            <a href="{% url 'ingredients:list' %}" class="btn btn-secondary">Cancel</a>
+        </form>
+    </div>
+</div>
+{% endblock %}
+

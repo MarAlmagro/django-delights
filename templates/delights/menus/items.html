@@ -1,0 +1,97 @@
+{% extends "delights/base.html" %}
+
+{% block title %}Menu Composition - {{ menu.name }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <h1>Menu Composition: {{ menu.name }}</h1>
+        
+        <div class="card mb-4">
+            <div class="card-header">Current Dishes</div>
+            <div class="card-body">
+                {% if current_dishes %}
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Dish</th>
+                            <th>Cost</th>
+                            <th>Price</th>
+                            <th>Availability</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for dish in current_dishes %}
+                        <tr>
+                            <td><a href="{% url 'dishes:detail' dish.pk %}">{{ dish.name }}</a></td>
+                            <td>${{ dish.cost|floatformat:2 }}</td>
+                            <td>${{ dish.price|floatformat:2 }}</td>
+                            <td>
+                                {% if dish.is_available %}
+                                    <span class="badge bg-success">Available</span>
+                                {% else %}
+                                    <span class="badge bg-danger">Unavailable</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <form method="post" class="d-inline">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="dish_id" value="{{ dish.pk }}">
+                                    <button type="submit" name="remove" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure?')">Remove</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                <div class="mt-3">
+                    <strong>Total Cost:</strong> ${{ menu.cost|floatformat:2 }}<br>
+                    <strong>Current Price:</strong> ${{ menu.price|floatformat:2 }}<br>
+                    <strong>Availability:</strong>
+                    {% if menu.is_available %}
+                        <span class="badge bg-success">Available</span>
+                    {% else %}
+                        <span class="badge bg-danger">Unavailable</span>
+                    {% endif %}
+                </div>
+                {% else %}
+                <p class="text-muted">No dishes added yet.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">Add Dish</div>
+            <div class="card-body">
+                {% if available_dishes %}
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="dish_id" class="form-label">Select Dish to Add</label>
+                        <select name="dish_id" id="dish_id" class="form-select">
+                            {% for dish in available_dishes %}
+                            <option value="{{ dish.pk }}">{{ dish.name }} (${{ dish.price|floatformat:2 }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <button type="submit" name="add" class="btn btn-primary">Add Dish</button>
+                </form>
+                {% else %}
+                <p class="text-muted">All available dishes are already in this menu.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">Actions</div>
+            <div class="card-body">
+                <a href="{% url 'menus:detail' menu.pk %}" class="btn btn-secondary w-100 mb-2">View Menu</a>
+                <a href="{% url 'menus:list' %}" class="btn btn-outline-secondary w-100">Back to List</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

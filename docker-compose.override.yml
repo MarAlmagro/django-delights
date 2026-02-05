@@ -1,0 +1,66 @@
+# Django Delights - Docker Compose Override for Development
+# This file is automatically loaded alongside docker-compose.yml
+# It overrides settings for local development
+
+version: '3.9'
+
+services:
+  # ==========================================================================
+  # Web Application - Development Overrides
+  # ==========================================================================
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: django-delights-web-dev
+    environment:
+      - DJANGO_ENV=dev
+      - DEBUG=True
+      - SECRET_KEY=dev-secret-key-not-for-production
+      - ALLOWED_HOSTS=localhost,127.0.0.1,0.0.0.0
+    volumes:
+      # Mount source code for hot reloading
+      - .:/app
+      - /app/__pycache__
+      - /app/.pytest_cache
+    ports:
+      - "8000:8000"
+    # Use Django's development server instead of Gunicorn
+    command: python manage.py runserver 0.0.0.0:8000
+    # Remove health check in development
+    healthcheck:
+      disable: true
+
+  # ==========================================================================
+  # PostgreSQL - Development Overrides
+  # ==========================================================================
+  db:
+    container_name: django-delights-db-dev
+    ports:
+      # Expose port for direct database access
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=django_delights_dev
+
+  # ==========================================================================
+  # Redis - Development Overrides
+  # ==========================================================================
+  redis:
+    container_name: django-delights-redis-dev
+    ports:
+      # Expose port for direct Redis access
+      - "6379:6379"
+
+  # ==========================================================================
+  # Mailhog (for email testing in development)
+  # ==========================================================================
+  mailhog:
+    image: mailhog/mailhog
+    container_name: django-delights-mailhog
+    ports:
+      - "1025:1025"  # SMTP
+      - "8025:8025"  # Web UI
+    networks:
+      - django-delights-network

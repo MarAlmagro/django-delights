@@ -1,0 +1,50 @@
+{% extends "delights/base.html" %}
+
+{% block title %}Dishes - Django Delights{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Dishes</h1>
+    <a href="{% url 'dishes:add' %}" class="btn btn-primary">Add New Dish</a>
+</div>
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Cost</th>
+            <th>Price</th>
+            <th>Availability</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for dish in dishes %}
+        <tr>
+            <td><a href="{% url 'dishes:detail' dish.pk %}">{{ dish.name }}</a></td>
+            <td>${{ dish.cost|floatformat:2 }}</td>
+            <td>${{ dish.price|floatformat:2 }}</td>
+            <td>
+                {% if dish.is_available %}
+                    <span class="badge bg-success">Available</span>
+                {% else %}
+                    <span class="badge bg-danger">Unavailable</span>
+                {% endif %}
+            </td>
+            <td>
+                <a href="{% url 'dishes:detail' dish.pk %}" class="btn btn-sm btn-outline-info">View</a>
+                <a href="{% url 'dishes:requirements' dish.pk %}" class="btn btn-sm btn-outline-primary">Edit Recipe</a>
+                {% if user.is_superuser %}
+                <a href="{% url 'dishes:edit' dish.pk %}" class="btn btn-sm btn-outline-warning">Edit</a>
+                {% endif %}
+            </td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="5" class="text-center">No dishes found. <a href="{% url 'dishes:add' %}">Add one</a></td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
+

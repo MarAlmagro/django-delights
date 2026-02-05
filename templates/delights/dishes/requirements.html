@@ -1,0 +1,91 @@
+{% extends "delights/base.html" %}
+
+{% block title %}Recipe Requirements - {{ dish.name }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <h1>Recipe Requirements: {{ dish.name }}</h1>
+        
+        <div class="card mb-4">
+            <div class="card-header">Current Recipe</div>
+            <div class="card-body">
+                {% if requirements %}
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Ingredient</th>
+                            <th>Quantity Required</th>
+                            <th>Unit</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for requirement in requirements %}
+                        <tr>
+                            <td>{{ requirement.ingredient.name }}</td>
+                            <td>{{ requirement.quantity_required }}</td>
+                            <td>{{ requirement.ingredient.unit.name }}</td>
+                            <td>
+                                <form method="post" class="d-inline">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="requirement_id" value="{{ requirement.pk }}">
+                                    <button type="submit" name="delete" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure?')">Remove</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                <div class="mt-3">
+                    <strong>Total Cost:</strong> ${{ dish.cost|floatformat:2 }}<br>
+                    <strong>Current Price:</strong> ${{ dish.price|floatformat:2 }}<br>
+                    <strong>Availability:</strong>
+                    {% if dish.is_available %}
+                        <span class="badge bg-success">Available</span>
+                    {% else %}
+                        <span class="badge bg-danger">Unavailable</span>
+                    {% endif %}
+                </div>
+                {% else %}
+                <p class="text-muted">No ingredients added yet.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">Add Ingredient</div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="{{ form.ingredient.id_for_label }}" class="form-label">Ingredient</label>
+                        {{ form.ingredient }}
+                        {% if form.ingredient.errors %}
+                            <div class="text-danger">{{ form.ingredient.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="mb-3">
+                        <label for="{{ form.quantity_required.id_for_label }}" class="form-label">Quantity Required</label>
+                        {{ form.quantity_required }}
+                        {% if form.quantity_required.errors %}
+                            <div class="text-danger">{{ form.quantity_required.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <button type="submit" name="add" class="btn btn-primary">Add Ingredient</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">Actions</div>
+            <div class="card-body">
+                <a href="{% url 'dishes:detail' dish.pk %}" class="btn btn-secondary w-100 mb-2">View Dish</a>
+                <a href="{% url 'dishes:list' %}" class="btn btn-outline-secondary w-100">Back to List</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
