@@ -10,7 +10,7 @@ readme = "README.md"
 license = {text = "MIT"}
 requires-python = ">=3.11"
 authors = [
-    {name = "Your Name", email = "your.email@example.com"}
+    {name = "Maria del Mar Almagro Moreno"}
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -55,10 +55,10 @@ api = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/yourusername/django-delights"
-Documentation = "https://github.com/yourusername/django-delights#readme"
-Repository = "https://github.com/yourusername/django-delights"
-Issues = "https://github.com/yourusername/django-delights/issues"
+Homepage = "https://github.com/MarAlmagro/django-delights"
+Documentation = "https://github.com/MarAlmagro/django-delights#readme"
+Repository = "https://github.com/MarAlmagro/django-delights"
+Issues = "https://github.com/MarAlmagro/django-delights/issues"
 
 # ============================================================================
 # Tool Configuration
