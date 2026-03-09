@@ -205,7 +205,15 @@ class MenuListSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Menu
-        fields = ["id", "name", "description", "cost", "price", "is_available", "dish_count"]
+        fields = [
+            "id",
+            "name",
+            "description",
+            "cost",
+            "price",
+            "is_available",
+            "dish_count",
+        ]
 
     def get_dish_count(self, obj):
         """Get number of dishes in menu."""
