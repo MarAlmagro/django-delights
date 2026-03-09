@@ -7,16 +7,10 @@ availability calculations, and cost calculations.
 
 from decimal import Decimal
 
-import pytest
-from django.db import transaction
 
 from delights.models import (
-    Dish,
-    Ingredient,
-    Menu,
     Purchase,
     PurchaseItem,
-    RecipeRequirement,
 )
 from delights.tests.factories import (
     DishFactory,
@@ -30,7 +24,7 @@ from delights.tests.factories import (
 )
 from delights.views import (
     calculate_dish_cost,
-    calculate_menu_cost,
+    update_menu_cost,
     check_dish_availability,
     check_menu_availability,
     update_dish_availability,
@@ -44,12 +38,8 @@ class TestCostCalculations:
     def test_dish_cost_calculation(self, db):
         """Test that dish cost is calculated correctly from ingredients."""
         unit = UnitFactory(name="g")
-        ingredient1 = IngredientFactory(
-            unit=unit, price_per_unit=Decimal("0.50")
-        )
-        ingredient2 = IngredientFactory(
-            unit=unit, price_per_unit=Decimal("0.75")
-        )
+        ingredient1 = IngredientFactory(unit=unit, price_per_unit=Decimal("0.50"))
+        ingredient2 = IngredientFactory(unit=unit, price_per_unit=Decimal("0.75"))
         dish = DishFactory(cost=Decimal("0"), price=Decimal("0"))
 
         RecipeRequirementFactory(
@@ -76,14 +66,14 @@ class TestCostCalculations:
         dish2 = DishFactory(cost=Decimal("7.50"))
         menu = MenuFactory(dishes=[dish1, dish2])
 
-        cost = calculate_menu_cost(menu)
+        cost = update_menu_cost(menu)
         expected_cost = Decimal("12.50")
         assert cost == expected_cost
 
     def test_menu_cost_no_dishes(self, db):
         """Test that menu with no dishes has zero cost."""
         menu = MenuFactory()
-        cost = calculate_menu_cost(menu)
+        cost = update_menu_cost(menu)
         assert cost == Decimal("0")
 
 
@@ -385,7 +375,7 @@ class TestEdgeCases:
         menu = MenuFactory()
         assert menu.dishes.count() == 0
         assert check_menu_availability(menu) is False
-        assert calculate_menu_cost(menu) == Decimal("0")
+        assert update_menu_cost(menu) == Decimal("0")
 
     def test_dish_in_multiple_menus(self, db):
         """Test dish can be in multiple menus."""
