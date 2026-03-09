@@ -367,8 +367,9 @@ class TestEdgeCases:
         )
 
         cost = calculate_dish_cost(dish)
-        # 10.25 * 0.333 = 3.41325
-        assert cost == Decimal("3.41")  # Rounded to 2 decimal places
+        # price_per_unit is stored as Decimal(2) so 0.333 → 0.33
+        # 10.25 * 0.33 = 3.3825 (calculate_dish_cost does not round)
+        assert cost == Decimal("3.3825")
 
     def test_empty_menu(self, db):
         """Test menu with no dishes behaves correctly."""
