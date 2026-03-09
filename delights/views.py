@@ -148,6 +148,8 @@ def calculate_dish_cost(dish):
 
 def check_dish_availability(dish):
     """Check if dish is available (all ingredients have sufficient quantity)"""
+    if not dish.recipe_requirements.exists():
+        return False
     for requirement in dish.recipe_requirements.all():
         if requirement.ingredient.quantity_available < requirement.quantity_required:
             return False

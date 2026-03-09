@@ -29,6 +29,7 @@ from delights.views import (
     calculate_dish_cost,
     update_dish_availability,
     update_menu_availability,
+    update_menu_cost,
 )
 
 from .permissions import (

@@ -194,7 +194,7 @@ class MenuSerializer(serializers.ModelSerializer):
 
     def get_calculated_cost(self, obj):
         """Calculate cost from dishes."""
-        total = sum(dish.cost for dish in obj.dishes.all())
+        total = sum((dish.cost for dish in obj.dishes.all()), Decimal("0"))
         return str(total.quantize(Decimal("0.01")))
 
 
