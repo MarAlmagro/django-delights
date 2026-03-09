@@ -7,16 +7,10 @@ availability calculations, and cost calculations.
 
 from decimal import Decimal
 
-import pytest
-from django.db import transaction
 
 from delights.models import (
-    Dish,
-    Ingredient,
-    Menu,
     Purchase,
     PurchaseItem,
-    RecipeRequirement,
 )
 from delights.tests.factories import (
     DishFactory,
@@ -30,7 +24,7 @@ from delights.tests.factories import (
 )
 from delights.views import (
     calculate_dish_cost,
-    calculate_menu_cost,
+    update_menu_cost,
     check_dish_availability,
     check_menu_availability,
     update_dish_availability,
@@ -44,12 +38,8 @@ class TestCostCalculations:
     def test_dish_cost_calculation(self, db):
         """Test that dish cost is calculated correctly from ingredients."""
         unit = UnitFactory(name="g")
-        ingredient1 = IngredientFactory(
-            unit=unit, price_per_unit=Decimal("0.50")
-        )
-        ingredient2 = IngredientFactory(
-            unit=unit, price_per_unit=Decimal("0.75")
-        )
+        ingredient1 = IngredientFactory(unit=unit, price_per_unit=Decimal("0.50"))
+        ingredient2 = IngredientFactory(unit=unit, price_per_unit=Decimal("0.75"))
         dish = DishFactory(cost=Decimal("0"), price=Decimal("0"))
 
         RecipeRequirementFactory(
@@ -76,14 +66,14 @@ class TestCostCalculations:
         dish2 = DishFactory(cost=Decimal("7.50"))
         menu = MenuFactory(dishes=[dish1, dish2])
 
-        cost = calculate_menu_cost(menu)
+        cost = update_menu_cost(menu)
         expected_cost = Decimal("12.50")
         assert cost == expected_cost
 
     def test_menu_cost_no_dishes(self, db):
         """Test that menu with no dishes has zero cost."""
         menu = MenuFactory()
-        cost = calculate_menu_cost(menu)
+        cost = update_menu_cost(menu)
         assert cost == Decimal("0")
 
 
@@ -217,7 +207,6 @@ class TestPurchaseWorkflow:
         RecipeRequirementFactory(
             dish=dish, ingredient=ingredient, quantity_required=Decimal("10")
         )
-        user = UserFactory()
 
         # Simulate purchase finalization (normally done in view)
         quantity_ordered = 2
@@ -323,13 +312,13 @@ class TestBusinessRules:
         user = UserFactory()
         purchase = PurchaseFactory(user=user, total_price_at_purchase=Decimal("0"))
 
-        item1 = PurchaseItemFactory(
+        PurchaseItemFactory(
             purchase=purchase,
             quantity=2,
             price_at_purchase=Decimal("10.00"),
             subtotal=Decimal("20.00"),
         )
-        item2 = PurchaseItemFactory(
+        PurchaseItemFactory(
             purchase=purchase,
             quantity=1,
             price_at_purchase=Decimal("15.00"),
@@ -377,15 +366,16 @@ class TestEdgeCases:
         )
 
         cost = calculate_dish_cost(dish)
-        # 10.25 * 0.333 = 3.41325
-        assert cost == Decimal("3.41")  # Rounded to 2 decimal places
+        # price_per_unit is stored as Decimal(2) so 0.333 → 0.33
+        # 10.25 * 0.33 = 3.3825 (calculate_dish_cost does not round)
+        assert cost == Decimal("3.3825")
 
     def test_empty_menu(self, db):
         """Test menu with no dishes behaves correctly."""
         menu = MenuFactory()
         assert menu.dishes.count() == 0
         assert check_menu_availability(menu) is False
-        assert calculate_menu_cost(menu) == Decimal("0")
+        assert update_menu_cost(menu) == Decimal("0")
 
     def test_dish_in_multiple_menus(self, db):
         """Test dish can be in multiple menus."""

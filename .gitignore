@@ -1,5 +1,5 @@
 ###############################################
-# Universal Recursive .cursorignore (Multi-stack)
+# Universal Recursive .gitignore (Multi-stack)
 ###############################################
 
 ########## OS garbage ##########
@@ -32,6 +32,7 @@
 ########## Secrets ##########
 **/.env
 **/.env.*
+!**/.env.example
 **/*.pem
 **/*.key
 **/*.crt
@@ -115,12 +116,4 @@
 **/*.png
 **/*.jpg
 **/*.jpeg
-**/*.gif
-**/*.svg
-**/*.webp
-**/assets/
-**/staticfiles/
-
-########## Cursor-specific ##########
-**/cursor-history/
-**/cursor-settings/
+**/*.gi***

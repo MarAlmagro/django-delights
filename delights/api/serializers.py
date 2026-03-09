@@ -194,7 +194,7 @@ class MenuSerializer(serializers.ModelSerializer):
 
     def get_calculated_cost(self, obj):
         """Calculate cost from dishes."""
-        total = sum(dish.cost for dish in obj.dishes.all())
+        total = sum((dish.cost for dish in obj.dishes.all()), Decimal("0"))
         return str(total.quantize(Decimal("0.01")))
 
 
@@ -205,7 +205,15 @@ class MenuListSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Menu
-        fields = ["id", "name", "description", "cost", "price", "is_available", "dish_count"]
+        fields = [
+            "id",
+            "name",
+            "description",
+            "cost",
+            "price",
+            "is_available",
+            "dish_count",
+        ]
 
     def get_dish_count(self, obj):
         """Get number of dishes in menu."""

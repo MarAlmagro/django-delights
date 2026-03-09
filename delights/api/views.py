@@ -8,11 +8,11 @@ from decimal import Decimal
 
 from django.conf import settings
 from django.db import transaction
-from django.db.models import Count, Sum
+from django.db.models import Sum
 from drf_spectacular.utils import extend_schema, extend_schema_view
-from rest_framework import generics, status, viewsets
+from rest_framework import status, viewsets
 from rest_framework.decorators import action
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -27,10 +27,9 @@ from delights.models import (
 )
 from delights.views import (
     calculate_dish_cost,
-    calculate_menu_cost,
-    check_dish_availability,
     update_dish_availability,
     update_menu_availability,
+    update_menu_cost,
 )
 
 from .permissions import (
@@ -54,10 +53,7 @@ from .serializers import (
     PurchaseListSerializer,
     PurchaseSerializer,
     RecipeRequirementCreateSerializer,
-    RecipeRequirementSerializer,
     UnitSerializer,
-    UserCreateSerializer,
-    UserSerializer,
 )
 
 
@@ -74,7 +70,9 @@ class HealthCheckView(APIView):
     @extend_schema(
         summary="Health check",
         description="Returns service health status",
-        responses={200: {"type": "object", "properties": {"status": {"type": "string"}}}},
+        responses={
+            200: {"type": "object", "properties": {"status": {"type": "string"}}}
+        },
         tags=["health"],
     )
     def get(self, request):
@@ -123,7 +121,9 @@ class UnitViewSet(viewsets.ModelViewSet):
     retrieve=extend_schema(summary="Get ingredient details", tags=["ingredients"]),
     create=extend_schema(summary="Create a new ingredient", tags=["ingredients"]),
     update=extend_schema(summary="Update an ingredient", tags=["ingredients"]),
-    partial_update=extend_schema(summary="Partially update an ingredient", tags=["ingredients"]),
+    partial_update=extend_schema(
+        summary="Partially update an ingredient", tags=["ingredients"]
+    ),
 )
 class IngredientViewSet(viewsets.ModelViewSet):
     """
@@ -231,11 +231,15 @@ class DishViewSet(viewsets.ModelViewSet):
         requirement, created = RecipeRequirement.objects.get_or_create(
             dish=dish,
             ingredient=serializer.validated_data["ingredient"],
-            defaults={"quantity_required": serializer.validated_data["quantity_required"]},
+            defaults={
+                "quantity_required": serializer.validated_data["quantity_required"]
+            },
         )
 
         if not created:
-            requirement.quantity_required = serializer.validated_data["quantity_required"]
+            requirement.quantity_required = serializer.validated_data[
+                "quantity_required"
+            ]
             requirement.save()
 
         # Recalculate cost and availability
@@ -246,7 +250,11 @@ class DishViewSet(viewsets.ModelViewSet):
         return Response(DishSerializer(dish).data)
 
     @extend_schema(summary="Remove recipe requirement from dish", tags=["dishes"])
-    @action(detail=True, methods=["delete"], url_path="remove_requirement/(?P<req_id>[^/.]+)")
+    @action(
+        detail=True,
+        methods=["delete"],
+        url_path="remove_requirement/(?P<req_id>[^/.]+)",
+    )
     def remove_requirement(self, request, pk=None, req_id=None):
         """Remove a recipe requirement from the dish."""
         dish = self.get_object()
@@ -305,7 +313,7 @@ class MenuViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         """Create menu with auto-calculated cost and availability."""
         menu = serializer.save(cost=Decimal("0"), is_available=False)
-        menu.cost = calculate_menu_cost(menu)
+        menu.cost = update_menu_cost(menu)
         menu.save()
         update_menu_availability(menu)
         return menu
@@ -313,7 +321,7 @@ class MenuViewSet(viewsets.ModelViewSet):
     def perform_update(self, serializer):
         """Update menu and recalculate cost/availability."""
         menu = serializer.save()
-        menu.cost = calculate_menu_cost(menu)
+        menu.cost = update_menu_cost(menu)
         menu.save()
         update_menu_availability(menu)
         return menu
@@ -328,7 +336,7 @@ class MenuViewSet(viewsets.ModelViewSet):
             menu.dishes.add(dish)
 
             # Recalculate cost and availability
-            menu.cost = calculate_menu_cost(menu)
+            menu.cost = update_menu_cost(menu)
             menu.save()
             update_menu_availability(menu)
 
@@ -349,7 +357,7 @@ class MenuViewSet(viewsets.ModelViewSet):
             menu.dishes.remove(dish)
 
             # Recalculate cost and availability
-            menu.cost = calculate_menu_cost(menu)
+            menu.cost = update_menu_cost(menu)
             menu.save()
             update_menu_availability(menu)
 
@@ -385,7 +393,11 @@ class PurchaseViewSet(viewsets.ModelViewSet):
         """Filter purchases based on user role."""
         user = self.request.user
         if user.is_superuser:
-            return Purchase.objects.select_related("user").prefetch_related("items__dish").all()
+            return (
+                Purchase.objects.select_related("user")
+                .prefetch_related("items__dish")
+                .all()
+            )
         return Purchase.objects.filter(user=user).prefetch_related("items__dish")
 
     def get_serializer_class(self):
@@ -421,7 +433,9 @@ class PurchaseViewSet(viewsets.ModelViewSet):
 
             # Check ingredient availability
             for req in dish.recipe_requirements.select_related("ingredient").all():
-                ingredient = Ingredient.objects.select_for_update().get(id=req.ingredient.id)
+                ingredient = Ingredient.objects.select_for_update().get(
+                    id=req.ingredient.id
+                )
                 required = req.quantity_required * item_data["quantity"]
                 if ingredient.quantity_available < required:
                     return Response(
@@ -431,12 +445,14 @@ class PurchaseViewSet(viewsets.ModelViewSet):
 
             subtotal = dish.price * item_data["quantity"]
             total_price += subtotal
-            validated_items.append({
-                "dish": dish,
-                "quantity": item_data["quantity"],
-                "price": dish.price,
-                "subtotal": subtotal,
-            })
+            validated_items.append(
+                {
+                    "dish": dish,
+                    "quantity": item_data["quantity"],
+                    "price": dish.price,
+                    "subtotal": subtotal,
+                }
+            )
 
         # Create purchase
         purchase = Purchase.objects.create(
@@ -459,7 +475,9 @@ class PurchaseViewSet(viewsets.ModelViewSet):
             # Deduct inventory
             for req in item["dish"].recipe_requirements.all():
                 ingredient = Ingredient.objects.get(id=req.ingredient.id)
-                ingredient.quantity_available -= req.quantity_required * item["quantity"]
+                ingredient.quantity_available -= (
+                    req.quantity_required * item["quantity"]
+                )
                 ingredient.save()
 
         # Update availability for all affected dishes
@@ -490,12 +508,9 @@ class DashboardView(APIView):
     def get(self, request):
         """Get revenue, cost, profit, and other metrics."""
         # Calculate total revenue
-        total_revenue = (
-            Purchase.objects.filter(status=Purchase.STATUS_COMPLETED).aggregate(
-                total=Sum("total_price_at_purchase")
-            )["total"]
-            or Decimal("0")
-        )
+        total_revenue = Purchase.objects.filter(
+            status=Purchase.STATUS_COMPLETED
+        ).aggregate(total=Sum("total_price_at_purchase"))["total"] or Decimal("0")
 
         # Calculate total cost
         total_cost = Decimal("0")
@@ -522,9 +537,9 @@ class DashboardView(APIView):
 
         # Low stock ingredients (threshold from settings or default 10)
         threshold = getattr(settings, "LOW_STOCK_THRESHOLD", 10)
-        low_stock = Ingredient.objects.filter(
-            quantity_available__lt=threshold
-        ).values("name", "quantity_available", "unit__name")
+        low_stock = Ingredient.objects.filter(quantity_available__lt=threshold).values(
+            "name", "quantity_available", "unit__name"
+        )
 
         data = {
             "total_revenue": total_revenue,

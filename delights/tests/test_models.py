@@ -8,7 +8,6 @@ and model relationships.
 from decimal import Decimal
 
 import pytest
-from django.core.exceptions import ValidationError
 from django.db import IntegrityError
 
 from delights.models import (
@@ -49,9 +48,9 @@ class TestUnitModel:
 
     def test_unit_unique_name(self, db):
         """Test that unit names must be unique."""
-        UnitFactory(name="unique_unit")
+        Unit.objects.create(name="unique_unit", description="first")
         with pytest.raises(IntegrityError):
-            UnitFactory(name="unique_unit")
+            Unit.objects.create(name="unique_unit", description="second")
 
     def test_unit_inactive(self, db):
         """Test creating an inactive unit."""
@@ -206,18 +205,24 @@ class TestRecipeRequirementModel:
         dish = DishFactory()
         RecipeRequirementFactory(dish=dish)
         RecipeRequirementFactory(dish=dish)
-        assert RecipeRequirement.objects.filter(dish=dish).count() == 2
+        dish_id = dish.pk
+        assert RecipeRequirement.objects.filter(dish_id=dish_id).count() == 2
         dish.delete()
-        assert RecipeRequirement.objects.filter(dish=dish).count() == 0
+        assert RecipeRequirement.objects.filter(dish_id=dish_id).count() == 0
 
     def test_recipe_requirement_cascade_delete_ingredient(self, db):
         """Test that requirements are deleted when ingredient is deleted."""
         ingredient = IngredientFactory()
         RecipeRequirementFactory(ingredient=ingredient)
         RecipeRequirementFactory(ingredient=ingredient)
-        assert RecipeRequirement.objects.filter(ingredient=ingredient).count() == 2
+        ingredient_id = ingredient.pk
+        assert (
+            RecipeRequirement.objects.filter(ingredient_id=ingredient_id).count() == 2
+        )
         ingredient.delete()
-        assert RecipeRequirement.objects.filter(ingredient=ingredient).count() == 0
+        assert (
+            RecipeRequirement.objects.filter(ingredient_id=ingredient_id).count() == 0
+        )
 
 
 class TestMenuModel:
@@ -363,9 +368,10 @@ class TestPurchaseItemModel:
         purchase = PurchaseFactory()
         PurchaseItemFactory(purchase=purchase)
         PurchaseItemFactory(purchase=purchase)
-        assert PurchaseItem.objects.filter(purchase=purchase).count() == 2
+        purchase_id = purchase.pk
+        assert PurchaseItem.objects.filter(purchase_id=purchase_id).count() == 2
         purchase.delete()
-        assert PurchaseItem.objects.filter(purchase=purchase).count() == 0
+        assert PurchaseItem.objects.filter(purchase_id=purchase_id).count() == 0
 
     def test_purchase_item_dish_protection(self, db):
         """Test that deleting a dish with purchase items raises error."""
