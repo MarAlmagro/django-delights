@@ -207,7 +207,6 @@ class TestPurchaseWorkflow:
         RecipeRequirementFactory(
             dish=dish, ingredient=ingredient, quantity_required=Decimal("10")
         )
-        user = UserFactory()
 
         # Simulate purchase finalization (normally done in view)
         quantity_ordered = 2
@@ -313,13 +312,13 @@ class TestBusinessRules:
         user = UserFactory()
         purchase = PurchaseFactory(user=user, total_price_at_purchase=Decimal("0"))
 
-        item1 = PurchaseItemFactory(
+        PurchaseItemFactory(
             purchase=purchase,
             quantity=2,
             price_at_purchase=Decimal("10.00"),
             subtotal=Decimal("20.00"),
         )
-        item2 = PurchaseItemFactory(
+        PurchaseItemFactory(
             purchase=purchase,
             quantity=1,
             price_at_purchase=Decimal("15.00"),
