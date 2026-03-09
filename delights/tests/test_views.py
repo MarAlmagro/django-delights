@@ -7,10 +7,9 @@ using Django's test client.
 
 from decimal import Decimal
 
-import pytest
 from django.urls import reverse
 
-from delights.models import Dish, Ingredient, Menu, Purchase, RecipeRequirement, Unit
+from delights.models import Dish, Ingredient, Menu, RecipeRequirement, Unit
 from delights.tests.factories import (
     DishFactory,
     IngredientFactory,
@@ -63,20 +62,20 @@ class TestUnitViews:
 
     def test_unit_list_requires_admin(self, client_logged_in_staff, db):
         """Test that unit list requires admin privileges."""
-        response = client_logged_in_staff.get(reverse("unit_list"))
+        response = client_logged_in_staff.get(reverse("units:list"))
         assert response.status_code == 403
 
     def test_unit_list_accessible_to_admin(self, client_logged_in_admin, db):
         """Test that admin can access unit list."""
         UnitFactory.create_batch(3)
-        response = client_logged_in_admin.get(reverse("unit_list"))
+        response = client_logged_in_admin.get(reverse("units:list"))
         assert response.status_code == 200
         assert Unit.objects.count() == 3
 
     def test_unit_create_by_admin(self, client_logged_in_admin, db):
         """Test admin can create a unit."""
         response = client_logged_in_admin.post(
-            reverse("unit_add"),
+            reverse("units:add"),
             {"name": "kg", "description": "kilogram", "is_active": True},
         )
         assert response.status_code == 302
@@ -86,7 +85,7 @@ class TestUnitViews:
         """Test toggling unit active status."""
         unit = UnitFactory(is_active=True)
         response = client_logged_in_admin.post(
-            reverse("unit_toggle_active", args=[unit.id])
+            reverse("units:toggle_active", args=[unit.id])
         )
         assert response.status_code == 302
         unit.refresh_from_db()
@@ -98,20 +97,20 @@ class TestIngredientViews:
 
     def test_ingredient_list_requires_login(self, client, db):
         """Test that ingredient list requires authentication."""
-        response = client.get(reverse("ingredient_list"))
+        response = client.get(reverse("ingredients:list"))
         assert response.status_code == 302  # Redirect to login
 
     def test_ingredient_list_accessible_to_staff(self, client_logged_in_staff, db):
         """Test that staff can access ingredient list."""
         IngredientFactory.create_batch(3)
-        response = client_logged_in_staff.get(reverse("ingredient_list"))
+        response = client_logged_in_staff.get(reverse("ingredients:list"))
         assert response.status_code == 200
 
     def test_ingredient_create_by_admin(self, client_logged_in_admin, db):
         """Test admin can create an ingredient."""
         unit = UnitFactory()
         response = client_logged_in_admin.post(
-            reverse("ingredient_add"),
+            reverse("ingredients:add"),
             {
                 "name": "Flour",
                 "unit": unit.id,
@@ -126,7 +125,7 @@ class TestIngredientViews:
         """Test staff can adjust ingredient inventory."""
         ingredient = IngredientFactory(quantity_available=Decimal("100.00"))
         response = client_logged_in_staff.post(
-            reverse("inventory_adjust", args=[ingredient.id]),
+            reverse("ingredients:adjust", args=[ingredient.id]),
             {"adjustment": "50", "action": "add"},
         )
         assert response.status_code == 302
@@ -139,26 +138,26 @@ class TestDishViews:
 
     def test_dish_list_requires_login(self, client, db):
         """Test that dish list requires authentication."""
-        response = client.get(reverse("dish_list"))
+        response = client.get(reverse("dishes:list"))
         assert response.status_code == 302
 
     def test_dish_list_accessible_to_staff(self, client_logged_in_staff, db):
         """Test that staff can access dish list."""
         DishFactory.create_batch(3)
-        response = client_logged_in_staff.get(reverse("dish_list"))
+        response = client_logged_in_staff.get(reverse("dishes:list"))
         assert response.status_code == 200
 
     def test_dish_detail_view(self, client_logged_in_staff, db):
         """Test dish detail view."""
         dish = DishFactory()
-        response = client_logged_in_staff.get(reverse("dish_detail", args=[dish.id]))
+        response = client_logged_in_staff.get(reverse("dishes:detail", args=[dish.id]))
         assert response.status_code == 200
         assert dish.name.encode() in response.content
 
     def test_dish_create_by_staff(self, client_logged_in_staff, db):
         """Test staff can create a dish."""
         response = client_logged_in_staff.post(
-            reverse("dish_add"),
+            reverse("dishes:add"),
             {
                 "name": "New Dish",
                 "description": "A new dish",
@@ -176,27 +175,27 @@ class TestMenuViews:
 
     def test_menu_list_requires_login(self, client, db):
         """Test that menu list requires authentication."""
-        response = client.get(reverse("menu_list"))
+        response = client.get(reverse("menus:list"))
         assert response.status_code == 302
 
     def test_menu_list_accessible_to_staff(self, client_logged_in_staff, db):
         """Test that staff can access menu list."""
         MenuFactory.create_batch(3)
-        response = client_logged_in_staff.get(reverse("menu_list"))
+        response = client_logged_in_staff.get(reverse("menus:list"))
         assert response.status_code == 200
 
     def test_menu_detail_view(self, client_logged_in_staff, db):
         """Test menu detail view."""
         dish = DishFactory()
         menu = MenuFactory(dishes=[dish])
-        response = client_logged_in_staff.get(reverse("menu_detail", args=[menu.id]))
+        response = client_logged_in_staff.get(reverse("menus:detail", args=[menu.id]))
         assert response.status_code == 200
         assert menu.name.encode() in response.content
 
     def test_menu_create_by_staff(self, client_logged_in_staff, db):
         """Test staff can create a menu."""
         response = client_logged_in_staff.post(
-            reverse("menu_add"),
+            reverse("menus:add"),
             {
                 "name": "Lunch Special",
                 "description": "Great lunch deal",
@@ -214,17 +213,19 @@ class TestPurchaseViews:
 
     def test_purchase_list_requires_login(self, client, db):
         """Test that purchase list requires authentication."""
-        response = client.get(reverse("purchase_list"))
+        response = client.get(reverse("purchases:list"))
         assert response.status_code == 302
 
-    def test_purchase_list_staff_sees_own_purchases(self, client_logged_in_staff, staff_user, db):
+    def test_purchase_list_staff_sees_own_purchases(
+        self, client_logged_in_staff, staff_user, db
+    ):
         """Test that staff can only see their own purchases."""
         # Create purchases for different users
         PurchaseFactory(user=staff_user)
         other_user = UserFactory()
         PurchaseFactory(user=other_user)
 
-        response = client_logged_in_staff.get(reverse("purchase_list"))
+        response = client_logged_in_staff.get(reverse("purchases:list"))
         assert response.status_code == 200
         # Staff should only see their own purchase
 
@@ -234,7 +235,7 @@ class TestPurchaseViews:
         other_user = UserFactory()
         PurchaseFactory(user=other_user)
 
-        response = client_logged_in_admin.get(reverse("purchase_list"))
+        response = client_logged_in_admin.get(reverse("purchases:list"))
         assert response.status_code == 200
 
     def test_purchase_detail_view(self, client_logged_in_admin, admin_user, db):
@@ -244,7 +245,7 @@ class TestPurchaseViews:
         PurchaseItemFactory(purchase=purchase, dish=dish)
 
         response = client_logged_in_admin.get(
-            reverse("purchase_detail", args=[purchase.id])
+            reverse("purchases:detail", args=[purchase.id])
         )
         assert response.status_code == 200
 
@@ -254,19 +255,21 @@ class TestDashboardViews:
 
     def test_dashboard_requires_admin(self, client_logged_in_staff, db):
         """Test that dashboard requires admin privileges."""
-        response = client_logged_in_staff.get(reverse("dashboard"))
+        response = client_logged_in_staff.get(reverse("dashboard:index"))
         assert response.status_code == 403
 
     def test_dashboard_accessible_to_admin(self, client_logged_in_admin, db):
         """Test that admin can access dashboard."""
-        response = client_logged_in_admin.get(reverse("dashboard"))
+        response = client_logged_in_admin.get(reverse("dashboard:index"))
         assert response.status_code == 200
 
     def test_dashboard_shows_metrics(self, client_logged_in_admin, admin_user, db):
         """Test that dashboard shows revenue and cost metrics."""
         # Create some test data
         dish = DishFactory(cost=Decimal("5.00"), price=Decimal("10.00"))
-        purchase = PurchaseFactory(user=admin_user, total_price_at_purchase=Decimal("10.00"))
+        purchase = PurchaseFactory(
+            user=admin_user, total_price_at_purchase=Decimal("10.00")
+        )
         PurchaseItemFactory(
             purchase=purchase,
             dish=dish,
@@ -275,7 +278,7 @@ class TestDashboardViews:
             subtotal=Decimal("10.00"),
         )
 
-        response = client_logged_in_admin.get(reverse("dashboard"))
+        response = client_logged_in_admin.get(reverse("dashboard:index"))
         assert response.status_code == 200
         # Dashboard should contain revenue information
 
@@ -285,19 +288,19 @@ class TestUserManagementViews:
 
     def test_user_list_requires_admin(self, client_logged_in_staff, db):
         """Test that user list requires admin privileges."""
-        response = client_logged_in_staff.get(reverse("user_list"))
+        response = client_logged_in_staff.get(reverse("users:list"))
         assert response.status_code == 403
 
     def test_user_list_accessible_to_admin(self, client_logged_in_admin, db):
         """Test that admin can access user list."""
         UserFactory.create_batch(3)
-        response = client_logged_in_admin.get(reverse("user_list"))
+        response = client_logged_in_admin.get(reverse("users:list"))
         assert response.status_code == 200
 
     def test_user_create_by_admin(self, client_logged_in_admin, db):
         """Test admin can create a user."""
         response = client_logged_in_admin.post(
-            reverse("user_add"),
+            reverse("users:add"),
             {
                 "username": "newuser",
                 "email": "newuser@example.com",
@@ -319,7 +322,7 @@ class TestRecipeRequirementViews:
         ingredient = IngredientFactory()
 
         response = client_logged_in_staff.post(
-            reverse("manage_recipe_requirements", args=[dish.id]),
+            reverse("dishes:requirements", args=[dish.id]),
             {
                 "ingredient": ingredient.id,
                 "quantity_required": "10.00",
@@ -337,7 +340,7 @@ class TestRecipeRequirementViews:
         requirement = RecipeRequirementFactory(dish=dish)
 
         response = client_logged_in_staff.post(
-            reverse("manage_recipe_requirements", args=[dish.id]),
+            reverse("dishes:requirements", args=[dish.id]),
             {
                 "requirement_id": requirement.id,
                 "action": "remove",
@@ -356,7 +359,7 @@ class TestMenuItemViews:
         dish = DishFactory()
 
         response = client_logged_in_staff.post(
-            reverse("manage_menu_items", args=[menu.id]),
+            reverse("menus:items", args=[menu.id]),
             {
                 "dish": dish.id,
                 "action": "add",
@@ -371,7 +374,7 @@ class TestMenuItemViews:
         menu = MenuFactory(dishes=[dish])
 
         response = client_logged_in_staff.post(
-            reverse("manage_menu_items", args=[menu.id]),
+            reverse("menus:items", args=[menu.id]),
             {
                 "dish": dish.id,
                 "action": "remove",
