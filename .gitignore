@@ -1,0 +1,119 @@
+###############################################
+# Universal Recursive .gitignore (Multi-stack)
+###############################################
+
+########## OS garbage ##########
+**/.DS_Store
+**/Thumbs.db
+
+########## Editor / IDE ##########
+**/.vscode/
+**/.idea/
+**/*.iml
+**/*.iws
+**/*.ipr
+**/*.swp
+**/*.swo
+
+# Eclipse
+**/.project
+**/.classpath
+**/.settings/
+**/.metadata/
+
+# JetBrains output
+**/out/
+
+########## Logs ##########
+**/*.log
+**/logs/
+**/log/
+
+########## Secrets ##########
+**/.env
+**/.env.*
+!**/.env.example
+**/*.pem
+**/*.key
+**/*.crt
+**/id_rsa
+**/secrets/
+**/credentials/
+
+########## Python ##########
+**/__pycache__/
+**/*.py[cod]
+**/*.pyo
+**/*.pyd
+**/*.pyc
+**/.venv/
+**/venv/
+**/env/
+**/pip-wheel-metadata/
+**/.eggs/
+**/*.egg-info/
+
+# Python caches
+**/.pytest_cache/
+**/coverage/
+**/.coverage
+**/*.cover
+**/*.py,cover
+
+########## Java / Spring Boot ##########
+# Maven
+**/target/
+**/*.jar
+**/*.war
+**/*.ear
+**/.mvn/wrapper/maven-wrapper.jar
+
+# Gradle
+**/build/
+**/.gradle/
+!gradle/wrapper/gradle-wrapper.jar
+
+# Java compiled classes
+**/*.class
+
+########## Node / Angular / TypeScript ##########
+**/node_modules/
+**/npm-debug.log*
+**/yarn-debug.log*
+**/yarn-error.log*
+**/.pnpm-store/
+
+# Angular
+**/.angular/
+**/.angular-cache/
+**/dist/
+**/tmp/
+
+# TypeScript
+**/*.tsbuildinfo
+**/tsconfig.tsbuildinfo
+
+########## Frontend build artifacts ##########
+**/build/
+**/dist/
+**/.cache/
+**/.cache-loader/
+**/.eslintcache
+
+########## Databases / datasets ##########
+**/*.sqlite
+**/*.sqlite3
+**/*.db
+**/*.csv
+**/data/
+**/datasets/
+**/backup/
+
+########## Generated docs ##########
+**/docs/_build/
+
+########## Images / heavy assets ##########
+**/*.png
+**/*.jpg
+**/*.jpeg
+**/*.gi***
