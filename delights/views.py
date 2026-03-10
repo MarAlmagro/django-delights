@@ -1,22 +1,25 @@
-from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth.decorators import login_required, user_passes_test
-from django.contrib import messages
-from django_ratelimit.decorators import ratelimit
-from django.contrib.auth.models import User
-from django.contrib.auth.forms import UserCreationForm, SetPasswordForm
-from django.views.generic import (
-    ListView,
-    CreateView,
-    UpdateView,
-    DetailView,
-    TemplateView,
-)
-from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
-from django.contrib.auth.views import LoginView as BaseLoginView
-from django.urls import reverse_lazy
-from django.db import transaction
-from django.db.models import Sum, Q, F
+import logging
 from decimal import Decimal
+
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required, user_passes_test
+from django.contrib.auth.forms import SetPasswordForm, UserCreationForm
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.contrib.auth.models import User
+from django.contrib.auth.views import LoginView as BaseLoginView
+from django.db import transaction
+from django.db.models import F, Q, Sum
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse_lazy
+from django.views.generic import (
+    CreateView,
+    DetailView,
+    ListView,
+    TemplateView,
+    UpdateView,
+)
+from django_ratelimit.decorators import ratelimit
+
 from .models import (
     Unit,
     Ingredient,
@@ -39,6 +42,8 @@ from .services.availability import (
     update_menu_availability,
 )
 from .utils import calculate_suggested_price, update_dishes_for_ingredient
+
+logger = logging.getLogger(__name__)
 
 # URL name constants
 URL_UNITS_LIST = "units:list"
@@ -625,19 +630,65 @@ def purchase_finalize(request):
         del request.session["purchase_data"]
         del request.session["purchase_total"]
 
+        # Track successful purchase metrics
+        purchase_counter.labels(status="completed").inc()
+        purchase_value.observe(float(purchase.total_price_at_purchase))
+        purchase_items_count.observe(len(purchase_items))
+
         messages.success(request, f"Purchase #{purchase.id} completed successfully!")
         return redirect("purchases:detail", pk=purchase.pk)
 
-    except Dish.DoesNotExist:
+    except Dish.DoesNotExist as e:
+        logger.warning(
+            "Purchase failed - dish not found",
+            extra={
+                "user_id": request.user.id,
+                "error": str(e),
+            },
+        )
+        purchase_counter.labels(status="failed_dish_unavailable").inc()
         messages.error(
             request, "One or more dishes are no longer available. Please try again."
         )
         return redirect(URL_PURCHASES_ADD)
-    except Exception as e:
-        messages.error(
-            request, f"Purchase could not be completed: {str(e)}. Please try again."
+    except InsufficientInventoryError as e:
+        logger.warning(
+            f"Purchase failed - insufficient inventory: {e}",
+            extra={
+                "user_id": request.user.id,
+                "ingredient": e.ingredient_name,
+                "required": e.required,
+                "available": e.available,
+            },
         )
+        purchase_counter.labels(status="failed_insufficient_inventory").inc()
+        messages.error(request, str(e))
         return redirect(URL_PURCHASES_CONFIRM)
+    except DishUnavailableError as e:
+        logger.warning(
+            f"Purchase failed - dish unavailable: {e}",
+            extra={
+                "user_id": request.user.id,
+                "dish": e.dish_name,
+            },
+        )
+        purchase_counter.labels(status="failed_dish_unavailable").inc()
+        messages.error(request, str(e))
+        return redirect(URL_PURCHASES_ADD)
+    except PurchaseError as e:
+        logger.error(
+            f"Purchase failed: {e}", exc_info=True, extra={"user_id": request.user.id}
+        )
+        purchase_counter.labels(status="failed_purchase_error").inc()
+        messages.error(request, "Purchase could not be completed. Please try again.")
+        return redirect(URL_PURCHASES_CONFIRM)
+    except Exception as e:
+        logger.exception(
+            f"Unexpected error during purchase: {e}", extra={"user_id": request.user.id}
+        )
+        purchase_counter.labels(status="failed_unexpected").inc()
+        messages.error(request, "An unexpected error occurred. Please contact support.")
+        return redirect(URL_PURCHASES_ADD)
 
 
 # Purchases - List and Detail

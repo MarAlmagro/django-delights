@@ -62,20 +62,68 @@ from .serializers import (
 
 
 class HealthCheckView(APIView):
-    """Health check endpoint for monitoring."""
+    """
+    Enhanced health check endpoint for monitoring.
+
+    Verifies database and cache connectivity in addition to basic service status.
+    Returns 200 if healthy, 503 if any dependency is unhealthy.
+    """
 
     permission_classes = [AllowAny]
 
     @extend_schema(
         summary="Health check",
-        description="Returns service health status",
+        description="Returns service health status with dependency checks",
         responses={
-            200: {"type": "object", "properties": {"status": {"type": "string"}}}
+            200: {
+                "type": "object",
+                "properties": {
+                    "status": {"type": "string"},
+                    "checks": {"type": "object"},
+                },
+            },
+            503: {
+                "type": "object",
+                "properties": {
+                    "status": {"type": "string"},
+                    "checks": {"type": "object"},
+                },
+            },
         },
         tags=["health"],
     )
     def get(self, request):
-        return Response({"status": "healthy"}, status=status.HTTP_200_OK)
+        from django.db import connection
+        from django.core.cache import cache
+
+        health = {"status": "healthy", "checks": {}}
+
+        # Database check
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT 1")
+            health["checks"]["database"] = "ok"
+        except Exception as e:
+            health["checks"]["database"] = f"error: {str(e)}"
+            health["status"] = "unhealthy"
+
+        # Cache check (if configured)
+        try:
+            cache.set("health_check", "ok", 10)
+            if cache.get("health_check") == "ok":
+                health["checks"]["cache"] = "ok"
+            else:
+                health["checks"]["cache"] = "error: cache not responding"
+                health["status"] = "unhealthy"
+        except Exception as e:
+            health["checks"]["cache"] = f"error: {str(e)}"
+
+        status_code = (
+            status.HTTP_200_OK
+            if health["status"] == "healthy"
+            else status.HTTP_503_SERVICE_UNAVAILABLE
+        )
+        return Response(health, status=status_code)
 
 
 # =============================================================================
