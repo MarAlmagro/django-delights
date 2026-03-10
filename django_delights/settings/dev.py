@@ -34,6 +34,7 @@ DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
         "NAME": BASE_DIR / "db.sqlite3",  # noqa: F405
+        "CONN_MAX_AGE": 60,  # Keep connections for 60 seconds
     }
 }
 
@@ -71,12 +72,34 @@ REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"] = {  # noqa: F405
 
 
 # =============================================================================
-# Debug Toolbar (optional - uncomment if using)
+# Request ID Tracking (Development)
 # =============================================================================
 
-# INSTALLED_APPS += ["debug_toolbar"]  # noqa: F405
-# MIDDLEWARE.insert(0, "debug_toolbar.middleware.DebugToolbarMiddleware")  # noqa: F405
-# INTERNAL_IPS = ["127.0.0.1"]
+try:
+    import request_id
+
+    INSTALLED_APPS += ["request_id"]  # noqa: F405
+    MIDDLEWARE.insert(0, "request_id.middleware.RequestIdMiddleware")  # noqa: F405
+
+    # Add request ID filter to logging
+    LOGGING["filters"]["request_id"] = {  # noqa: F405
+        "()": "request_id.logging.RequestIdFilter",
+    }
+    LOGGING["formatters"]["verbose"]["format"] = (  # noqa: F405
+        "{levelname} {asctime} [{request_id}] [{username}] {method} {path} {module} {message}"
+    )
+    LOGGING["handlers"]["console"]["filters"].append("request_id")  # noqa: F405
+except ImportError:
+    pass
+
+
+# =============================================================================
+# Debug Toolbar - Performance Monitoring
+# =============================================================================
+
+INSTALLED_APPS += ["debug_toolbar"]  # noqa: F405
+MIDDLEWARE.insert(0, "debug_toolbar.middleware.DebugToolbarMiddleware")  # noqa: F405
+INTERNAL_IPS = ["127.0.0.1", "localhost"]
 
 
 # =============================================================================

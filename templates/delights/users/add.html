@@ -6,31 +6,31 @@
 <div class="row">
     <div class="col-md-8 offset-md-2">
         <h1>Add New User</h1>
-        <form method="post">
+        <form method="post" id="user-form" novalidate aria-label="Create new user">
             {% csrf_token %}
             <div class="mb-3">
-                <label for="{{ form.username.id_for_label }}" class="form-label">Username</label>
+                <label for="{{ form.username.id_for_label }}" class="form-label">Username <span class="text-danger" aria-hidden="true">*</span></label>
                 {{ form.username }}
                 {% if form.username.errors %}
-                    <div class="text-danger">{{ form.username.errors }}</div>
+                    <div class="invalid-feedback d-block" role="alert">{{ form.username.errors }}</div>
                 {% endif %}
             </div>
             <div class="mb-3">
-                <label for="{{ form.password1.id_for_label }}" class="form-label">Password</label>
+                <label for="{{ form.password1.id_for_label }}" class="form-label">Password <span class="text-danger" aria-hidden="true">*</span></label>
                 {{ form.password1 }}
                 {% if form.password1.errors %}
-                    <div class="text-danger">{{ form.password1.errors }}</div>
+                    <div class="invalid-feedback d-block" role="alert">{{ form.password1.errors }}</div>
                 {% endif %}
             </div>
             <div class="mb-3">
-                <label for="{{ form.password2.id_for_label }}" class="form-label">Password Confirmation</label>
+                <label for="{{ form.password2.id_for_label }}" class="form-label">Password Confirmation <span class="text-danger" aria-hidden="true">*</span></label>
                 {{ form.password2 }}
                 {% if form.password2.errors %}
-                    <div class="text-danger">{{ form.password2.errors }}</div>
+                    <div class="invalid-feedback d-block" role="alert">{{ form.password2.errors }}</div>
                 {% endif %}
             </div>
-            <button type="submit" class="btn btn-primary">Create User</button>
-            <a href="{% url 'users:list' %}" class="btn btn-secondary">Cancel</a>
+            <button type="submit" class="btn btn-primary" aria-label="Submit form to create user">Create User</button>
+            <a href="{% url 'users:list' %}" class="btn btn-secondary" aria-label="Cancel and return to users list">Cancel</a>
         </form>
     </div>
 </div>

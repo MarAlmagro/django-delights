@@ -6,38 +6,38 @@
 <div class="row">
     <div class="col-md-8 offset-md-2">
         <h1>Edit Ingredient: {{ object.name }}</h1>
-        <form method="post">
+        <form method="post" id="ingredient-edit-form" novalidate aria-label="Edit ingredient">
             {% csrf_token %}
             <div class="mb-3">
-                <label for="{{ form.name.id_for_label }}" class="form-label">Name</label>
+                <label for="{{ form.name.id_for_label }}" class="form-label">Name <span class="text-danger" aria-hidden="true">*</span></label>
                 {{ form.name }}
                 {% if form.name.errors %}
-                    <div class="text-danger">{{ form.name.errors }}</div>
+                    <div class="invalid-feedback d-block" role="alert">{{ form.name.errors }}</div>
                 {% endif %}
             </div>
             <div class="mb-3">
-                <label for="{{ form.unit.id_for_label }}" class="form-label">Unit</label>
+                <label for="{{ form.unit.id_for_label }}" class="form-label">Unit <span class="text-danger" aria-hidden="true">*</span></label>
                 {{ form.unit }}
-                <small class="form-text text-muted">Only active units are shown.</small>
+                <small class="form-text text-muted" id="unit-help">Only active units are shown.</small>
                 {% if form.unit.errors %}
-                    <div class="text-danger">{{ form.unit.errors }}</div>
+                    <div class="invalid-feedback d-block" role="alert">{{ form.unit.errors }}</div>
                 {% endif %}
             </div>
             <div class="mb-3">
-                <label for="{{ form.price_per_unit.id_for_label }}" class="form-label">Price per Unit</label>
+                <label for="{{ form.price_per_unit.id_for_label }}" class="form-label">Price per Unit <span class="text-danger" aria-hidden="true">*</span></label>
                 <div class="input-group">
-                    <span class="input-group-text">$</span>
+                    <span class="input-group-text" aria-hidden="true">$</span>
                     {{ form.price_per_unit }}
                 </div>
                 {% if form.price_per_unit.errors %}
-                    <div class="text-danger">{{ form.price_per_unit.errors }}</div>
+                    <div class="invalid-feedback d-block" role="alert">{{ form.price_per_unit.errors }}</div>
                 {% endif %}
             </div>
             <div class="alert alert-info">
                 <strong>Note:</strong> Quantity is not editable here. Use "Adjust Inventory" to change quantities.
             </div>
-            <button type="submit" class="btn btn-primary">Update Ingredient</button>
-            <a href="{% url 'ingredients:list' %}" class="btn btn-secondary">Cancel</a>
+            <button type="submit" class="btn btn-primary" aria-label="Submit form to update ingredient">Update Ingredient</button>
+            <a href="{% url 'ingredients:list' %}" class="btn btn-secondary" aria-label="Cancel and return to inventory list">Cancel</a>
         </form>
     </div>
 </div>

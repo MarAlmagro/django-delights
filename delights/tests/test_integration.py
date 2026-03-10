@@ -22,9 +22,8 @@ from delights.tests.factories import (
     UnitFactory,
     UserFactory,
 )
-from delights.views import (
-    calculate_dish_cost,
-    update_menu_cost,
+from delights.services.pricing import calculate_dish_cost, calculate_menu_cost
+from delights.services.availability import (
     check_dish_availability,
     check_menu_availability,
     update_dish_availability,
@@ -50,7 +49,6 @@ class TestCostCalculations:
         )
 
         cost = calculate_dish_cost(dish)
-        # 100 * 0.50 + 50 * 0.75 = 50 + 37.5 = 87.5
         expected_cost = Decimal("87.50")
         assert cost == expected_cost
 
@@ -66,14 +64,14 @@ class TestCostCalculations:
         dish2 = DishFactory(cost=Decimal("7.50"))
         menu = MenuFactory(dishes=[dish1, dish2])
 
-        cost = update_menu_cost(menu)
+        cost = calculate_menu_cost(menu)
         expected_cost = Decimal("12.50")
         assert cost == expected_cost
 
     def test_menu_cost_no_dishes(self, db):
         """Test that menu with no dishes has zero cost."""
         menu = MenuFactory()
-        cost = update_menu_cost(menu)
+        cost = calculate_menu_cost(menu)
         assert cost == Decimal("0")
 
 
@@ -216,7 +214,6 @@ class TestPurchaseWorkflow:
             requirement.ingredient.save()
 
         ingredient.refresh_from_db()
-        # 100 - (10 * 2) = 80
         assert ingredient.quantity_available == Decimal("80")
 
     def test_purchase_updates_availability(self, db):
@@ -375,7 +372,7 @@ class TestEdgeCases:
         menu = MenuFactory()
         assert menu.dishes.count() == 0
         assert check_menu_availability(menu) is False
-        assert update_menu_cost(menu) == Decimal("0")
+        assert calculate_menu_cost(menu) == Decimal("0")
 
     def test_dish_in_multiple_menus(self, db):
         """Test dish can be in multiple menus."""

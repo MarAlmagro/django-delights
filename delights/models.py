@@ -76,7 +76,7 @@ class Ingredient(models.Model):
         max_digits=10, decimal_places=2, help_text="Cost per unit of measurement"
     )
     quantity_available: models.DecimalField[Decimal, Decimal] = models.DecimalField(
-        max_digits=10, decimal_places=2, default=0
+        max_digits=10, decimal_places=2, default=0, db_index=True
     )
 
     # Type hints for reverse relations
@@ -87,6 +87,42 @@ class Ingredient(models.Model):
         verbose_name = "Ingredient"
         verbose_name_plural = "Ingredients"
         ordering = ["name"]
+
+    @property
+    def is_low_stock(self) -> bool:
+        """Check if ingredient is below low stock threshold."""
+        from django.conf import settings
+
+        threshold = getattr(settings, "LOW_STOCK_THRESHOLD", 10)
+        return self.quantity_available < threshold
+
+    @property
+    def total_value(self) -> Decimal:
+        """Calculate total inventory value."""
+        return self.price_per_unit * self.quantity_available
+
+    def adjust_quantity(self, amount: Decimal) -> None:
+        """
+        Adjust quantity by the specified amount.
+
+        Args:
+            amount: Positive to add, negative to subtract
+        """
+        self.quantity_available += amount
+        if self.quantity_available < 0:
+            self.quantity_available = Decimal("0")
+        self.save(update_fields=["quantity_available"])
+
+    def clean(self):
+        """Validate model data."""
+        from django.core.exceptions import ValidationError
+
+        if self.price_per_unit < 0:
+            raise ValidationError({"price_per_unit": "Price cannot be negative."})
+        if self.quantity_available < 0:
+            raise ValidationError(
+                {"quantity_available": "Quantity cannot be negative."}
+            )
 
     def __str__(self) -> str:
         return f"{self.name} ({self.quantity_available} {self.unit.name})"
@@ -119,7 +155,9 @@ class Dish(models.Model):
         max_digits=10, decimal_places=2, help_text="Selling price"
     )
     is_available: models.BooleanField[bool, bool] = models.BooleanField(
-        default=False, help_text="Available if all ingredients are sufficient"
+        default=False,
+        help_text="Available if all ingredients are sufficient",
+        db_index=True,
     )
 
     # Type hints for reverse relations
@@ -132,6 +170,59 @@ class Dish(models.Model):
         verbose_name = "Dish"
         verbose_name_plural = "Dishes"
         ordering = ["name"]
+
+    @property
+    def calculated_cost(self) -> Decimal:
+        """Calculate cost from recipe requirements."""
+        total = Decimal("0")
+        for req in self.recipe_requirements.select_related("ingredient"):
+            total += req.ingredient.price_per_unit * req.quantity_required
+        return total
+
+    @property
+    def profit_margin(self) -> Decimal:
+        """Calculate profit margin percentage."""
+        if self.cost == 0:
+            return Decimal("0")
+        return ((self.price - self.cost) / self.cost) * 100
+
+    @property
+    def is_profitable(self) -> bool:
+        """Check if dish is profitable."""
+        return self.price > self.cost
+
+    def can_make(self, quantity: int = 1) -> bool:
+        """Check if we can make the specified quantity."""
+        for req in self.recipe_requirements.select_related("ingredient"):
+            needed = req.quantity_required * quantity
+            if req.ingredient.quantity_available < needed:
+                return False
+        return True
+
+    def get_missing_ingredients(self) -> list:
+        """Get list of ingredients with insufficient quantity."""
+        missing = []
+        for req in self.recipe_requirements.select_related("ingredient"):
+            if req.ingredient.quantity_available < req.quantity_required:
+                missing.append(
+                    {
+                        "ingredient": req.ingredient,
+                        "required": req.quantity_required,
+                        "available": req.ingredient.quantity_available,
+                        "shortage": req.quantity_required
+                        - req.ingredient.quantity_available,
+                    }
+                )
+        return missing
+
+    def clean(self):
+        """Validate model data."""
+        from django.core.exceptions import ValidationError
+
+        if self.price < 0:
+            raise ValidationError({"price": "Price cannot be negative."})
+        if self.cost < 0:
+            raise ValidationError({"cost": "Cost cannot be negative."})
 
     def __str__(self) -> str:
         return self.name
@@ -240,12 +331,14 @@ class Purchase(models.Model):
     user: models.ForeignKey[User, User] = models.ForeignKey(
         User, on_delete=models.PROTECT, related_name="purchases"
     )
-    timestamp: models.DateTimeField = models.DateTimeField(auto_now_add=True)
+    timestamp: models.DateTimeField = models.DateTimeField(
+        auto_now_add=True, db_index=True
+    )
     total_price_at_purchase: models.DecimalField[Decimal, Decimal] = (
         models.DecimalField(max_digits=10, decimal_places=2, default=0)
     )
     status: models.CharField[str, str] = models.CharField(
-        max_length=20, choices=STATUS_CHOICES, default=STATUS_COMPLETED
+        max_length=20, choices=STATUS_CHOICES, default=STATUS_COMPLETED, db_index=True
     )
     notes: models.TextField[str, str] = models.TextField(blank=True)
 
@@ -257,6 +350,43 @@ class Purchase(models.Model):
         verbose_name = "Purchase"
         verbose_name_plural = "Purchases"
         ordering = ["-timestamp"]
+        indexes = [
+            models.Index(fields=["status", "timestamp"]),
+            models.Index(fields=["user", "status"]),
+        ]
+
+    STATUS_PENDING = "pending"
+
+    @property
+    def item_count(self) -> int:
+        """Get total number of items in purchase."""
+        return self.items.aggregate(total=models.Sum("quantity"))["total"] or 0
+
+    @property
+    def is_completed(self) -> bool:
+        """Check if purchase is completed."""
+        return self.status == self.STATUS_COMPLETED
+
+    @property
+    def is_cancelled(self) -> bool:
+        """Check if purchase is cancelled."""
+        return self.status == self.STATUS_CANCELLED
+
+    @property
+    def total(self) -> Decimal:
+        """Alias for total_price_at_purchase."""
+        return self.total_price_at_purchase
+
+    @total.setter
+    def total(self, value: Decimal) -> None:
+        """Set total_price_at_purchase."""
+        self.total_price_at_purchase = value
+
+    def calculate_total(self) -> Decimal:
+        """Calculate total from items."""
+        return self.items.aggregate(total=models.Sum("subtotal"))["total"] or Decimal(
+            "0"
+        )
 
     def __str__(self) -> str:
         return (
@@ -307,3 +437,78 @@ class PurchaseItem(models.Model):
             f"{self.quantity}x {self.dish.name} @ {self.price_at_purchase} "
             f"(Purchase #{self.purchase.id})"
         )
+
+
+class AuditLog(models.Model):
+    """
+    Audit log for tracking sensitive operations.
+
+    Records user actions for security and compliance purposes.
+
+    Attributes:
+        user: User who performed the action (nullable for system actions)
+        action: Type of action performed
+        model_name: Name of the model affected
+        object_id: ID of the object affected
+        changes: JSON field containing change details
+        ip_address: IP address of the user
+        timestamp: When the action occurred
+    """
+
+    ACTION_CREATE = "create"
+    ACTION_UPDATE = "update"
+    ACTION_DELETE = "delete"
+    ACTION_LOGIN = "login"
+    ACTION_LOGOUT = "logout"
+    ACTION_PURCHASE = "purchase"
+    ACTION_INVENTORY = "inventory"
+
+    ACTION_CHOICES = [
+        (ACTION_CREATE, "Create"),
+        (ACTION_UPDATE, "Update"),
+        (ACTION_DELETE, "Delete"),
+        (ACTION_LOGIN, "Login"),
+        (ACTION_LOGOUT, "Logout"),
+        (ACTION_PURCHASE, "Purchase"),
+        (ACTION_INVENTORY, "Inventory Adjustment"),
+    ]
+
+    user: models.ForeignKey[User | None, User | None] = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="audit_logs",
+    )
+    action: models.CharField[str, str] = models.CharField(
+        max_length=20, choices=ACTION_CHOICES
+    )
+    model_name: models.CharField[str, str] = models.CharField(max_length=100)
+    object_id: models.PositiveIntegerField[int | None, int | None] = (
+        models.PositiveIntegerField(null=True, blank=True)
+    )
+    object_repr: models.CharField[str, str] = models.CharField(
+        max_length=200, blank=True, default=""
+    )
+    changes: models.JSONField = models.JSONField(default=dict)
+    ip_address: models.GenericIPAddressField[str | None, str | None] = (
+        models.GenericIPAddressField(null=True, blank=True)
+    )
+    user_agent: models.CharField[str, str] = models.CharField(
+        max_length=500, blank=True, default=""
+    )
+    timestamp: models.DateTimeField = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Audit Log"
+        verbose_name_plural = "Audit Logs"
+        ordering = ["-timestamp"]
+        indexes = [
+            models.Index(fields=["user", "timestamp"]),
+            models.Index(fields=["action", "timestamp"]),
+            models.Index(fields=["model_name", "object_id"]),
+        ]
+
+    def __str__(self) -> str:
+        user_str = self.user.username if self.user else "System"
+        return f"{user_str} - {self.get_action_display()} - {self.model_name} #{self.object_id or 'N/A'}"

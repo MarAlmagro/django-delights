@@ -1,20 +1,25 @@
-from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth.decorators import login_required, user_passes_test
+import logging
+from decimal import Decimal
+
 from django.contrib import messages
-from django.contrib.auth.models import User
-from django.contrib.auth.forms import UserCreationForm, SetPasswordForm
-from django.views.generic import (
-    ListView,
-    CreateView,
-    UpdateView,
-    DetailView,
-    TemplateView,
-)
+from django.contrib.auth.decorators import login_required, user_passes_test
+from django.contrib.auth.forms import SetPasswordForm, UserCreationForm
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.contrib.auth.models import User
 from django.contrib.auth.views import LoginView as BaseLoginView
-from django.urls import reverse_lazy
 from django.db import transaction
-from django.db.models import Sum, Q
+from django.db.models import F, Q, Sum
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse_lazy
+from django.views.generic import (
+    CreateView,
+    DetailView,
+    ListView,
+    TemplateView,
+    UpdateView,
+)
+from django_ratelimit.decorators import ratelimit
+
 from .models import (
     Unit,
     Ingredient,
@@ -32,6 +37,13 @@ from .forms import (
     InventoryAdjustmentForm,
     MenuForm,
 )
+from .services.availability import (
+    update_dish_availability,
+    update_menu_availability,
+)
+from .utils import calculate_suggested_price, update_dishes_for_ingredient
+
+logger = logging.getLogger(__name__)
 
 # URL name constants
 URL_UNITS_LIST = "units:list"
@@ -53,6 +65,7 @@ class UnitListView(LoginRequiredMixin, UserPassesTestMixin, ListView):
     model = Unit
     template_name = "delights/units/list.html"
     context_object_name = "units"
+    paginate_by = 20
 
     def test_func(self):
         return is_admin(self.request.user)
@@ -107,6 +120,10 @@ class IngredientListView(LoginRequiredMixin, ListView):
     model = Ingredient
     template_name = "delights/ingredients/list.html"
     context_object_name = "ingredients"
+    paginate_by = 20
+
+    def get_queryset(self):
+        return Ingredient.objects.select_related("unit").order_by("name")
 
 
 class IngredientCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
@@ -143,6 +160,7 @@ class IngredientUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
 
 
 @login_required
+@ratelimit(key="ip", rate="10/m", method="POST", block=True)
 def inventory_adjust(request, pk):
     """Adjust inventory quantity (staff + admin)"""
     ingredient = get_object_or_404(Ingredient, pk=pk)
@@ -157,8 +175,7 @@ def inventory_adjust(request, pk):
             ingredient.save()
 
             # Trigger availability recalculation for Dishes and Menus
-            update_dish_availability_from_ingredient(ingredient)
-            update_menu_availability()
+            update_dishes_for_ingredient(ingredient)
 
             messages.success(
                 request,
@@ -178,75 +195,12 @@ def inventory_adjust(request, pk):
     )
 
 
-# Helper functions for cost and availability calculations
-GLOBAL_MARGIN = 0.20  # 20% margin
-
-
-def calculate_dish_cost(dish):
-    """Calculate dish cost from recipe requirements"""
-    total_cost = 0
-    for requirement in dish.recipe_requirements.all():
-        total_cost += (
-            requirement.ingredient.price_per_unit * requirement.quantity_required
-        )
-    return total_cost
-
-
-def check_dish_availability(dish):
-    """Check if dish is available (all ingredients have sufficient quantity)"""
-    if not dish.recipe_requirements.exists():
-        return False
-    for requirement in dish.recipe_requirements.all():
-        if requirement.ingredient.quantity_available < requirement.quantity_required:
-            return False
-    return True
-
-
-def update_dish_availability(dish):
-    """Update dish cost and availability"""
-    dish.cost = calculate_dish_cost(dish)
-    dish.is_available = (
-        check_dish_availability(dish) and dish.recipe_requirements.exists()
-    )
-    dish.save()
-
-
-def update_dish_availability_from_ingredient(ingredient):
-    """Update all dishes that use this ingredient"""
-    dishes = Dish.objects.filter(recipe_requirements__ingredient=ingredient).distinct()
-    for dish in dishes:
-        update_dish_availability(dish)
-
-
-def update_menu_cost(menu):
-    """Calculate menu cost from dishes"""
-    total_cost = sum(dish.cost for dish in menu.dishes.all())
-    return total_cost
-
-
-def check_menu_availability(menu):
-    """Check if menu is available (all dishes are available)"""
-    return all(dish.is_available for dish in menu.dishes.all()) and menu.dishes.exists()
-
-
-def update_menu_availability(menu=None):
-    """Update menu cost and availability"""
-    if menu:
-        menus = [menu]
-    else:
-        menus = Menu.objects.all()
-
-    for menu in menus:
-        menu.cost = update_menu_cost(menu)
-        menu.is_available = check_menu_availability(menu)
-        menu.save()
-
-
 # Dishes CRUD
 class DishListView(LoginRequiredMixin, ListView):
     model = Dish
     template_name = "delights/dishes/list.html"
     context_object_name = "dishes"
+    paginate_by = 20
 
 
 class DishDetailView(LoginRequiredMixin, DetailView):
@@ -320,7 +274,7 @@ def manage_recipe_requirements(request, pk):
 
                 # Set price using global margin if not set
                 if dish.price == 0 and dish.cost > 0:
-                    dish.price = dish.cost * (1 + GLOBAL_MARGIN)
+                    dish.price = calculate_suggested_price(dish.cost)
                     dish.save()
 
                 messages.success(
@@ -357,6 +311,7 @@ class MenuListView(LoginRequiredMixin, ListView):
     model = Menu
     template_name = "delights/menus/list.html"
     context_object_name = "menus"
+    paginate_by = 20
 
 
 class MenuDetailView(LoginRequiredMixin, DetailView):
@@ -380,7 +335,7 @@ class MenuCreateView(LoginRequiredMixin, CreateView):
     def form_valid(self, form):
         menu = form.save(commit=False)
         menu.cost = 0  # Will be calculated when dishes are added
-        menu.price = menu.cost * (1 + GLOBAL_MARGIN) if menu.cost > 0 else 0
+        menu.price = calculate_suggested_price(menu.cost) if menu.cost > 0 else 0
         menu.is_available = False
         menu.save()
 
@@ -421,7 +376,7 @@ def manage_menu_items(request, pk):
 
             # Set price using global margin if not set
             if menu.price == 0 and menu.cost > 0:
-                menu.price = menu.cost * (1 + GLOBAL_MARGIN)
+                menu.price = calculate_suggested_price(menu.cost)
                 menu.save()
 
             messages.success(request, f"Added {dish.name} to menu.")
@@ -631,9 +586,7 @@ def _create_purchase_and_deduct_inventory(request, purchase_items, purchase_tota
                 locked_ingredient.quantity_available = 0
             locked_ingredient.save()
 
-            update_dish_availability_from_ingredient(locked_ingredient)
-
-    update_menu_availability()
+            update_dishes_for_ingredient(locked_ingredient)
 
     purchase.total_price_at_purchase = total_actual
     purchase.save()
@@ -643,6 +596,7 @@ def _create_purchase_and_deduct_inventory(request, purchase_items, purchase_tota
 
 # Purchases - Step 3: Atomic Finalization
 @login_required
+@ratelimit(key="ip", rate="10/m", method="POST", block=True)
 @transaction.atomic
 def purchase_finalize(request):
     """Atomically finalize purchase with inventory deduction"""
@@ -676,19 +630,65 @@ def purchase_finalize(request):
         del request.session["purchase_data"]
         del request.session["purchase_total"]
 
+        # Track successful purchase metrics
+        purchase_counter.labels(status="completed").inc()
+        purchase_value.observe(float(purchase.total_price_at_purchase))
+        purchase_items_count.observe(len(purchase_items))
+
         messages.success(request, f"Purchase #{purchase.id} completed successfully!")
         return redirect("purchases:detail", pk=purchase.pk)
 
-    except Dish.DoesNotExist:
+    except Dish.DoesNotExist as e:
+        logger.warning(
+            "Purchase failed - dish not found",
+            extra={
+                "user_id": request.user.id,
+                "error": str(e),
+            },
+        )
+        purchase_counter.labels(status="failed_dish_unavailable").inc()
         messages.error(
             request, "One or more dishes are no longer available. Please try again."
         )
         return redirect(URL_PURCHASES_ADD)
-    except Exception as e:
-        messages.error(
-            request, f"Purchase could not be completed: {str(e)}. Please try again."
+    except InsufficientInventoryError as e:
+        logger.warning(
+            f"Purchase failed - insufficient inventory: {e}",
+            extra={
+                "user_id": request.user.id,
+                "ingredient": e.ingredient_name,
+                "required": e.required,
+                "available": e.available,
+            },
         )
+        purchase_counter.labels(status="failed_insufficient_inventory").inc()
+        messages.error(request, str(e))
         return redirect(URL_PURCHASES_CONFIRM)
+    except DishUnavailableError as e:
+        logger.warning(
+            f"Purchase failed - dish unavailable: {e}",
+            extra={
+                "user_id": request.user.id,
+                "dish": e.dish_name,
+            },
+        )
+        purchase_counter.labels(status="failed_dish_unavailable").inc()
+        messages.error(request, str(e))
+        return redirect(URL_PURCHASES_ADD)
+    except PurchaseError as e:
+        logger.error(
+            f"Purchase failed: {e}", exc_info=True, extra={"user_id": request.user.id}
+        )
+        purchase_counter.labels(status="failed_purchase_error").inc()
+        messages.error(request, "Purchase could not be completed. Please try again.")
+        return redirect(URL_PURCHASES_CONFIRM)
+    except Exception as e:
+        logger.exception(
+            f"Unexpected error during purchase: {e}", extra={"user_id": request.user.id}
+        )
+        purchase_counter.labels(status="failed_unexpected").inc()
+        messages.error(request, "An unexpected error occurred. Please contact support.")
+        return redirect(URL_PURCHASES_ADD)
 
 
 # Purchases - List and Detail
@@ -726,6 +726,11 @@ class PurchaseDetailView(LoginRequiredMixin, DetailView):
 class LoginView(BaseLoginView):
     template_name = "registration/login.html"
 
+    def form_valid(self, form):
+        if self.request.session.session_key:
+            self.request.session.cycle_key()
+        return super().form_valid(form)
+
     def get_success_url(self):
         if self.request.user.is_superuser:
             return reverse_lazy("dashboard:index")
@@ -736,13 +741,28 @@ class LoginView(BaseLoginView):
 # Dashboard (Admin only)
 class DashboardView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
     template_name = "delights/dashboard/index.html"
+    CACHE_KEY = "dashboard_metrics"
+    CACHE_TIMEOUT = 300  # 5 minutes
 
     def test_func(self):
         return is_admin(self.request.user)
 
     def get_context_data(self, **kwargs):
+        from django.core.cache import cache
+
         context = super().get_context_data(**kwargs)
 
+        # Try cache first
+        metrics = cache.get(self.CACHE_KEY)
+        if metrics is None:
+            metrics = self._calculate_metrics()
+            cache.set(self.CACHE_KEY, metrics, self.CACHE_TIMEOUT)
+
+        context.update(metrics)
+        return context
+
+    def _calculate_metrics(self):
+        """Calculate dashboard metrics (expensive operation)."""
         # Revenue, cost, profit
         completed_purchases = Purchase.objects.filter(status="completed")
         total_revenue = (
@@ -753,11 +773,11 @@ class DashboardView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
         )
 
         # Calculate cost from dish costs (using current dish costs as approximation)
-        total_cost = 0
-        for purchase_item in PurchaseItem.objects.filter(
-            purchase__status="completed"
-        ).select_related("dish"):
-            total_cost += purchase_item.quantity * purchase_item.dish.cost
+        total_cost = PurchaseItem.objects.filter(
+            purchase__status=Purchase.STATUS_COMPLETED
+        ).annotate(item_cost=F("quantity") * F("dish__cost")).aggregate(
+            total=Sum("item_cost")
+        )["total"] or Decimal("0")
 
         profit = total_revenue - total_cost
 
@@ -774,17 +794,13 @@ class DashboardView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
             quantity_available__lt=10
         ).order_by("quantity_available")[:10]
 
-        context.update(
-            {
-                "total_revenue": total_revenue,
-                "total_cost": total_cost,
-                "profit": profit,
-                "top_dishes": top_dishes,
-                "low_stock_ingredients": low_stock_ingredients,
-            }
-        )
-
-        return context
+        return {
+            "total_revenue": total_revenue,
+            "total_cost": total_cost,
+            "profit": profit,
+            "top_dishes": list(top_dishes),
+            "low_stock_ingredients": list(low_stock_ingredients),
+        }
 
 
 # User Management (Admin only)
@@ -792,6 +808,7 @@ class UserListView(LoginRequiredMixin, UserPassesTestMixin, ListView):
     model = User
     template_name = "delights/users/list.html"
     context_object_name = "users"
+    paginate_by = 20
 
     def test_func(self):
         return is_admin(self.request.user)
@@ -843,6 +860,7 @@ def user_toggle_active(request, pk):
 
 @login_required
 @user_passes_test(is_admin)
+@ratelimit(key="ip", rate="5/m", method="POST", block=True)
 def user_reset_password(request, pk):
     """Reset user password (admin only)"""
     user = get_object_or_404(User, pk=pk)

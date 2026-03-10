@@ -10,23 +10,23 @@
             <strong>Current Quantity:</strong> {{ ingredient.quantity_available }} {{ ingredient.unit.name }}<br>
             <small>Enter a positive number to add inventory, or a negative number to subtract.</small>
         </div>
-        <form method="post">
+        <form method="post" id="adjust-form" novalidate aria-label="Adjust inventory">
             {% csrf_token %}
             <div class="mb-3">
-                <label for="{{ form.adjustment.id_for_label }}" class="form-label">Adjustment</label>
+                <label for="{{ form.adjustment.id_for_label }}" class="form-label">Adjustment <span class="text-danger" aria-hidden="true">*</span></label>
                 <div class="input-group">
-                    <span class="input-group-text">{{ ingredient.unit.name }}</span>
+                    <span class="input-group-text" aria-label="Unit: {{ ingredient.unit.name }}">{{ ingredient.unit.name }}</span>
                     {{ form.adjustment }}
                 </div>
                 {% if form.adjustment.help_text %}
-                    <small class="form-text text-muted">{{ form.adjustment.help_text }}</small>
+                    <small class="form-text text-muted" id="adjustment-help">{{ form.adjustment.help_text }}</small>
                 {% endif %}
                 {% if form.adjustment.errors %}
-                    <div class="text-danger">{{ form.adjustment.errors }}</div>
+                    <div class="invalid-feedback d-block" role="alert">{{ form.adjustment.errors }}</div>
                 {% endif %}
             </div>
-            <button type="submit" class="btn btn-primary">Apply Adjustment</button>
-            <a href="{% url 'ingredients:list' %}" class="btn btn-secondary">Cancel</a>
+            <button type="submit" class="btn btn-primary" aria-label="Submit form to apply adjustment">Apply Adjustment</button>
+            <a href="{% url 'ingredients:list' %}" class="btn btn-secondary" aria-label="Cancel and return to inventory list">Cancel</a>
         </form>
     </div>
 </div>

@@ -26,3 +26,6 @@ safety>=3.0.0
 # Development Tools
 ipython>=8.0.0
 django-debug-toolbar>=4.2.0
+
+# Observability (dev-only)
+django-request-id>=1.0.0

@@ -44,20 +44,29 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt",
     "drf_spectacular",
     "corsheaders",
+    "axes",
+    "django_prometheus",
     # Local apps
     "delights",
 ]
 
 MIDDLEWARE = [
+    "django_prometheus.middleware.PrometheusBeforeMiddleware",
+    "delights.middleware.LoggingContextMiddleware",
+    "delights.middleware.RequestLoggingMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
+    "csp.middleware.CSPMiddleware",
+    "delights.middleware.SecurityHeadersMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "axes.middleware.AxesMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "django_prometheus.middleware.PrometheusAfterMiddleware",
 ]
 
 ROOT_URLCONF = "django_delights.urls"
@@ -187,6 +196,10 @@ REST_FRAMEWORK = {
         "user": "1000/hour",
     },
     "EXCEPTION_HANDLER": "rest_framework.views.exception_handler",
+    "DEFAULT_RENDERER_CLASSES": [
+        "rest_framework.renderers.JSONRenderer",
+        "rest_framework.renderers.BrowsableAPIRenderer",
+    ],
 }
 
 
@@ -251,6 +264,40 @@ CORS_ALLOW_CREDENTIALS = True
 
 
 # =============================================================================
+# Security Configuration
+# =============================================================================
+
+# Django-Axes: Brute force protection
+AUTHENTICATION_BACKENDS = [
+    "axes.backends.AxesStandaloneBackend",
+    "django.contrib.auth.backends.ModelBackend",
+]
+
+AXES_FAILURE_LIMIT = 5
+AXES_COOLOFF_TIME = timedelta(minutes=30)
+AXES_LOCKOUT_TEMPLATE = "registration/lockout.html"
+AXES_RESET_ON_SUCCESS = True
+AXES_ENABLE_ACCESS_FAILURE_LOG = True
+AXES_LOCKOUT_PARAMETERS = [["username", "ip_address"]]
+
+# Content Security Policy
+CSP_DEFAULT_SRC = ("'self'",)
+CSP_STYLE_SRC = ("'self'", "cdn.jsdelivr.net", "'unsafe-inline'")
+CSP_SCRIPT_SRC = ("'self'", "cdn.jsdelivr.net")
+CSP_IMG_SRC = ("'self'", "data:")
+CSP_FONT_SRC = ("'self'", "cdn.jsdelivr.net")
+CSP_CONNECT_SRC = ("'self'",)
+CSP_FRAME_ANCESTORS = ("'none'",)
+CSP_FORM_ACTION = ("'self'",)
+
+# Session Security
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = "Lax"
+CSRF_COOKIE_HTTPONLY = True
+CSRF_COOKIE_SAMESITE = "Lax"
+
+
+# =============================================================================
 # Logging Configuration
 # =============================================================================
 
@@ -259,18 +306,32 @@ LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
+    "filters": {
+        "context": {
+            "()": "delights.middleware.ContextFilter",
+        },
+    },
     "formatters": {
         "verbose": {
-            "format": "{levelname} {asctime} {module} {process:d} {thread:d} {message}",
+            "format": "{levelname} {asctime} [{username}] {method} {path} {module} {message}",
             "style": "{",
         },
         "simple": {
             "format": "{levelname} {asctime} {module} {message}",
             "style": "{",
         },
+        "json": {
+            "()": "pythonjsonlogger.jsonlogger.JsonFormatter",
+            "format": "%(levelname)s %(asctime)s %(username)s %(path)s %(module)s %(message)s",
+        },
     },
     "handlers": {
         "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "verbose",
+            "filters": ["context"],
+        },
+        "console_simple": {
             "class": "logging.StreamHandler",
             "formatter": "simple",
         },
@@ -288,6 +349,11 @@ LOGGING = {
         "delights": {
             "handlers": ["console"],
             "level": "DEBUG",
+            "propagate": False,
+        },
+        "delights.requests": {
+            "handlers": ["console"],
+            "level": "INFO",
             "propagate": False,
         },
     },
