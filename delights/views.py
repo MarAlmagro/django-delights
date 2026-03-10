@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
+from django_ratelimit.decorators import ratelimit
 from django.contrib.auth.models import User
 from django.contrib.auth.forms import UserCreationForm, SetPasswordForm
 from django.views.generic import (
@@ -36,6 +37,7 @@ from .services.availability import (
     update_dish_availability,
     update_menu_availability,
 )
+from .utils import calculate_suggested_price, update_dishes_for_ingredient
 
 # URL name constants
 URL_UNITS_LIST = "units:list"
@@ -147,6 +149,7 @@ class IngredientUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
 
 
 @login_required
+@ratelimit(key="ip", rate="10/m", method="POST", block=True)
 def inventory_adjust(request, pk):
     """Adjust inventory quantity (staff + admin)"""
     ingredient = get_object_or_404(Ingredient, pk=pk)
@@ -580,6 +583,7 @@ def _create_purchase_and_deduct_inventory(request, purchase_items, purchase_tota
 
 # Purchases - Step 3: Atomic Finalization
 @login_required
+@ratelimit(key="ip", rate="10/m", method="POST", block=True)
 @transaction.atomic
 def purchase_finalize(request):
     """Atomically finalize purchase with inventory deduction"""
@@ -662,6 +666,11 @@ class PurchaseDetailView(LoginRequiredMixin, DetailView):
 # Custom Login View with redirect logic
 class LoginView(BaseLoginView):
     template_name = "registration/login.html"
+
+    def form_valid(self, form):
+        if self.request.session.session_key:
+            self.request.session.cycle_key()
+        return super().form_valid(form)
 
     def get_success_url(self):
         if self.request.user.is_superuser:
@@ -780,6 +789,7 @@ def user_toggle_active(request, pk):
 
 @login_required
 @user_passes_test(is_admin)
+@ratelimit(key="ip", rate="5/m", method="POST", block=True)
 def user_reset_password(request, pk):
     """Reset user password (admin only)"""
     user = get_object_or_404(User, pk=pk)
