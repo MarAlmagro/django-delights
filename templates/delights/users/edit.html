@@ -6,41 +6,41 @@
 <div class="row">
     <div class="col-md-8 offset-md-2">
         <h1>Edit User: {{ object.username }}</h1>
-        <form method="post">
+        <form method="post" id="user-edit-form" novalidate aria-label="Edit user">
             {% csrf_token %}
             <div class="mb-3">
-                <label for="{{ form.username.id_for_label }}" class="form-label">Username</label>
+                <label for="{{ form.username.id_for_label }}" class="form-label">Username <span class="text-danger" aria-hidden="true">*</span></label>
                 {{ form.username }}
                 {% if form.username.errors %}
-                    <div class="text-danger">{{ form.username.errors }}</div>
+                    <div class="invalid-feedback d-block" role="alert">{{ form.username.errors }}</div>
                 {% endif %}
             </div>
             <div class="mb-3">
                 <label for="{{ form.email.id_for_label }}" class="form-label">Email</label>
                 {{ form.email }}
                 {% if form.email.errors %}
-                    <div class="text-danger">{{ form.email.errors }}</div>
+                    <div class="invalid-feedback d-block" role="alert">{{ form.email.errors }}</div>
                 {% endif %}
             </div>
             <div class="mb-3 form-check">
                 {{ form.is_staff }}
                 <label for="{{ form.is_staff.id_for_label }}" class="form-check-label">Staff</label>
                 {% if form.is_staff.errors %}
-                    <div class="text-danger">{{ form.is_staff.errors }}</div>
+                    <div class="invalid-feedback d-block" role="alert">{{ form.is_staff.errors }}</div>
                 {% endif %}
             </div>
             <div class="mb-3 form-check">
                 {{ form.is_active }}
                 <label for="{{ form.is_active.id_for_label }}" class="form-check-label">Active</label>
                 {% if form.is_active.errors %}
-                    <div class="text-danger">{{ form.is_active.errors }}</div>
+                    <div class="invalid-feedback d-block" role="alert">{{ form.is_active.errors }}</div>
                 {% endif %}
             </div>
             <div class="alert alert-info">
                 <strong>Note:</strong> To change password, use the "Reset Password" option from the user list.
             </div>
-            <button type="submit" class="btn btn-primary">Update User</button>
-            <a href="{% url 'users:list' %}" class="btn btn-secondary">Cancel</a>
+            <button type="submit" class="btn btn-primary" aria-label="Submit form to update user">Update User</button>
+            <a href="{% url 'users:list' %}" class="btn btn-secondary" aria-label="Cancel and return to users list">Cancel</a>
         </form>
     </div>
 </div>

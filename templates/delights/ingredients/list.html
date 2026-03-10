@@ -6,32 +6,32 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1>Inventory</h1>
     {% if user.is_superuser %}
-    <a href="{% url 'ingredients:add' %}" class="btn btn-primary">Add New Ingredient</a>
+    <a href="{% url 'ingredients:add' %}" class="btn btn-primary" aria-label="Add new ingredient">Add New Ingredient</a>
     {% endif %}
 </div>
 
-<table class="table table-striped">
+<table class="table table-striped table-responsive-stack" role="table" aria-label="List of ingredients">
     <thead>
         <tr>
-            <th>Name</th>
-            <th>Unit</th>
-            <th>Quantity Available</th>
-            <th>Price per Unit</th>
-            <th>Actions</th>
+            <th scope="col">Name</th>
+            <th scope="col">Unit</th>
+            <th scope="col">Quantity Available</th>
+            <th scope="col">Price per Unit</th>
+            <th scope="col">Actions</th>
         </tr>
     </thead>
     <tbody>
         {% for ingredient in ingredients %}
         <tr>
-            <td>{{ ingredient.name }}</td>
-            <td>{{ ingredient.unit.name }}</td>
-            <td>{{ ingredient.quantity_available }} {{ ingredient.unit.name }}</td>
-            <td>${{ ingredient.price_per_unit }}</td>
-            <td>
+            <td data-label="Name">{{ ingredient.name }}</td>
+            <td data-label="Unit">{{ ingredient.unit.name }}</td>
+            <td data-label="Quantity Available">{{ ingredient.quantity_available }} {{ ingredient.unit.name }}</td>
+            <td data-label="Price per Unit">${{ ingredient.price_per_unit }}</td>
+            <td data-label="Actions">
                 {% if user.is_superuser %}
-                <a href="{% url 'ingredients:edit' ingredient.pk %}" class="btn btn-sm btn-outline-primary">Edit</a>
+                <a href="{% url 'ingredients:edit' ingredient.pk %}" class="btn btn-sm btn-outline-primary" aria-label="Edit {{ ingredient.name }}">Edit</a>
                 {% endif %}
-                <a href="{% url 'ingredients:adjust' ingredient.pk %}" class="btn btn-sm btn-outline-warning">Adjust Inventory</a>
+                <a href="{% url 'ingredients:adjust' ingredient.pk %}" class="btn btn-sm btn-outline-warning" aria-label="Adjust inventory for {{ ingredient.name }}">Adjust Inventory</a>
             </td>
         </tr>
         {% empty %}
