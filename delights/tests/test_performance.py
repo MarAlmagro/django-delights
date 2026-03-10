@@ -23,7 +23,7 @@ from delights.models import (
 def admin_user(db):
     """Create an admin user for testing."""
     return User.objects.create_superuser(
-        username="admin", email="admin@test.com", password="testpass123"
+        username="admin", email="admin@test.com", password="adminpass123"
     )
 
 
@@ -31,21 +31,21 @@ def admin_user(db):
 def staff_user(db):
     """Create a staff user for testing."""
     return User.objects.create_user(
-        username="staff", email="staff@test.com", password="testpass123", is_staff=True
+        username="staff", email="staff@test.com", password="staffpass123", is_staff=True
     )
 
 
 @pytest.fixture
 def client_logged_in_admin(client, admin_user):
     """Return a client logged in as admin."""
-    client.login(username="admin", password="testpass123")
+    client.force_login(admin_user)
     return client
 
 
 @pytest.fixture
 def client_logged_in_staff(client, staff_user):
     """Return a client logged in as staff."""
-    client.login(username="staff", password="testpass123")
+    client.force_login(staff_user)
     return client
 
 
@@ -117,7 +117,7 @@ class TestDashboardPerformance:
         cache.clear()
 
         # First request - should hit database
-        with django_assert_num_queries(10):  # Allow up to 10 queries
+        with django_assert_num_queries(6):  # Allow up to 6 queries
             response = client_logged_in_admin.get("/dashboard/")
             assert response.status_code == 200
 
@@ -166,7 +166,7 @@ class TestListViewPerformance:
 
         # Should use select_related to avoid N+1
         with django_assert_num_queries(
-            5
+            4
         ):  # Session, user, count, ingredients with unit
             response = client_logged_in_staff.get("/ingredients/")
             assert response.status_code == 200
@@ -213,9 +213,7 @@ class TestListViewPerformance:
             )
 
         # Should optimize queries with select_related and prefetch_related
-        with django_assert_num_queries(
-            6
-        ):  # Session, user, count, purchases, users, items
+        with django_assert_num_queries(5):  # Session, user, purchases, items, dishes
             response = client_logged_in_admin.get("/purchases/")
             assert response.status_code == 200
 
@@ -297,6 +295,6 @@ class TestBulkUpdateOptimization:
 
         # Update should use bulk_update (fewer queries than individual saves)
         with django_assert_num_queries(
-            5
-        ):  # Query dishes, prefetch, pricing queries, bulk update
+            4
+        ):  # Query dishes, prefetch requirements, prefetch ingredients, bulk update
             update_dishes_for_ingredient(flour)
