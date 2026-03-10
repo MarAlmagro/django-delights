@@ -76,7 +76,7 @@ class Ingredient(models.Model):
         max_digits=10, decimal_places=2, help_text="Cost per unit of measurement"
     )
     quantity_available: models.DecimalField[Decimal, Decimal] = models.DecimalField(
-        max_digits=10, decimal_places=2, default=0
+        max_digits=10, decimal_places=2, default=0, db_index=True
     )
 
     # Type hints for reverse relations
@@ -155,7 +155,9 @@ class Dish(models.Model):
         max_digits=10, decimal_places=2, help_text="Selling price"
     )
     is_available: models.BooleanField[bool, bool] = models.BooleanField(
-        default=False, help_text="Available if all ingredients are sufficient"
+        default=False,
+        help_text="Available if all ingredients are sufficient",
+        db_index=True,
     )
 
     # Type hints for reverse relations
@@ -329,12 +331,14 @@ class Purchase(models.Model):
     user: models.ForeignKey[User, User] = models.ForeignKey(
         User, on_delete=models.PROTECT, related_name="purchases"
     )
-    timestamp: models.DateTimeField = models.DateTimeField(auto_now_add=True)
+    timestamp: models.DateTimeField = models.DateTimeField(
+        auto_now_add=True, db_index=True
+    )
     total_price_at_purchase: models.DecimalField[Decimal, Decimal] = (
         models.DecimalField(max_digits=10, decimal_places=2, default=0)
     )
     status: models.CharField[str, str] = models.CharField(
-        max_length=20, choices=STATUS_CHOICES, default=STATUS_COMPLETED
+        max_length=20, choices=STATUS_CHOICES, default=STATUS_COMPLETED, db_index=True
     )
     notes: models.TextField[str, str] = models.TextField(blank=True)
 
@@ -346,6 +350,10 @@ class Purchase(models.Model):
         verbose_name = "Purchase"
         verbose_name_plural = "Purchases"
         ordering = ["-timestamp"]
+        indexes = [
+            models.Index(fields=["status", "timestamp"]),
+            models.Index(fields=["user", "status"]),
+        ]
 
     STATUS_PENDING = "pending"
 

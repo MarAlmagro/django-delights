@@ -15,7 +15,8 @@ from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.auth.views import LoginView as BaseLoginView
 from django.urls import reverse_lazy
 from django.db import transaction
-from django.db.models import Sum, Q
+from django.db.models import Sum, Q, F
+from decimal import Decimal
 from .models import (
     Unit,
     Ingredient,
@@ -59,6 +60,7 @@ class UnitListView(LoginRequiredMixin, UserPassesTestMixin, ListView):
     model = Unit
     template_name = "delights/units/list.html"
     context_object_name = "units"
+    paginate_by = 20
 
     def test_func(self):
         return is_admin(self.request.user)
@@ -113,6 +115,10 @@ class IngredientListView(LoginRequiredMixin, ListView):
     model = Ingredient
     template_name = "delights/ingredients/list.html"
     context_object_name = "ingredients"
+    paginate_by = 20
+
+    def get_queryset(self):
+        return Ingredient.objects.select_related("unit").order_by("name")
 
 
 class IngredientCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
@@ -189,6 +195,7 @@ class DishListView(LoginRequiredMixin, ListView):
     model = Dish
     template_name = "delights/dishes/list.html"
     context_object_name = "dishes"
+    paginate_by = 20
 
 
 class DishDetailView(LoginRequiredMixin, DetailView):
@@ -299,6 +306,7 @@ class MenuListView(LoginRequiredMixin, ListView):
     model = Menu
     template_name = "delights/menus/list.html"
     context_object_name = "menus"
+    paginate_by = 20
 
 
 class MenuDetailView(LoginRequiredMixin, DetailView):
@@ -682,13 +690,28 @@ class LoginView(BaseLoginView):
 # Dashboard (Admin only)
 class DashboardView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
     template_name = "delights/dashboard/index.html"
+    CACHE_KEY = "dashboard_metrics"
+    CACHE_TIMEOUT = 300  # 5 minutes
 
     def test_func(self):
         return is_admin(self.request.user)
 
     def get_context_data(self, **kwargs):
+        from django.core.cache import cache
+
         context = super().get_context_data(**kwargs)
 
+        # Try cache first
+        metrics = cache.get(self.CACHE_KEY)
+        if metrics is None:
+            metrics = self._calculate_metrics()
+            cache.set(self.CACHE_KEY, metrics, self.CACHE_TIMEOUT)
+
+        context.update(metrics)
+        return context
+
+    def _calculate_metrics(self):
+        """Calculate dashboard metrics (expensive operation)."""
         # Revenue, cost, profit
         completed_purchases = Purchase.objects.filter(status="completed")
         total_revenue = (
@@ -699,11 +722,11 @@ class DashboardView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
         )
 
         # Calculate cost from dish costs (using current dish costs as approximation)
-        total_cost = 0
-        for purchase_item in PurchaseItem.objects.filter(
-            purchase__status="completed"
-        ).select_related("dish"):
-            total_cost += purchase_item.quantity * purchase_item.dish.cost
+        total_cost = PurchaseItem.objects.filter(
+            purchase__status=Purchase.STATUS_COMPLETED
+        ).annotate(item_cost=F("quantity") * F("dish__cost")).aggregate(
+            total=Sum("item_cost")
+        )["total"] or Decimal("0")
 
         profit = total_revenue - total_cost
 
@@ -720,17 +743,13 @@ class DashboardView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
             quantity_available__lt=10
         ).order_by("quantity_available")[:10]
 
-        context.update(
-            {
-                "total_revenue": total_revenue,
-                "total_cost": total_cost,
-                "profit": profit,
-                "top_dishes": top_dishes,
-                "low_stock_ingredients": low_stock_ingredients,
-            }
-        )
-
-        return context
+        return {
+            "total_revenue": total_revenue,
+            "total_cost": total_cost,
+            "profit": profit,
+            "top_dishes": list(top_dishes),
+            "low_stock_ingredients": list(low_stock_ingredients),
+        }
 
 
 # User Management (Admin only)
@@ -738,6 +757,7 @@ class UserListView(LoginRequiredMixin, UserPassesTestMixin, ListView):
     model = User
     template_name = "delights/users/list.html"
     context_object_name = "users"
+    paginate_by = 20
 
     def test_func(self):
         return is_admin(self.request.user)
