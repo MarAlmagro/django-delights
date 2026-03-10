@@ -88,6 +88,42 @@ class Ingredient(models.Model):
         verbose_name_plural = "Ingredients"
         ordering = ["name"]
 
+    @property
+    def is_low_stock(self) -> bool:
+        """Check if ingredient is below low stock threshold."""
+        from django.conf import settings
+
+        threshold = getattr(settings, "LOW_STOCK_THRESHOLD", 10)
+        return self.quantity_available < threshold
+
+    @property
+    def total_value(self) -> Decimal:
+        """Calculate total inventory value."""
+        return self.price_per_unit * self.quantity_available
+
+    def adjust_quantity(self, amount: Decimal) -> None:
+        """
+        Adjust quantity by the specified amount.
+
+        Args:
+            amount: Positive to add, negative to subtract
+        """
+        self.quantity_available += amount
+        if self.quantity_available < 0:
+            self.quantity_available = Decimal("0")
+        self.save(update_fields=["quantity_available"])
+
+    def clean(self):
+        """Validate model data."""
+        from django.core.exceptions import ValidationError
+
+        if self.price_per_unit < 0:
+            raise ValidationError({"price_per_unit": "Price cannot be negative."})
+        if self.quantity_available < 0:
+            raise ValidationError(
+                {"quantity_available": "Quantity cannot be negative."}
+            )
+
     def __str__(self) -> str:
         return f"{self.name} ({self.quantity_available} {self.unit.name})"
 
@@ -132,6 +168,59 @@ class Dish(models.Model):
         verbose_name = "Dish"
         verbose_name_plural = "Dishes"
         ordering = ["name"]
+
+    @property
+    def calculated_cost(self) -> Decimal:
+        """Calculate cost from recipe requirements."""
+        total = Decimal("0")
+        for req in self.recipe_requirements.select_related("ingredient"):
+            total += req.ingredient.price_per_unit * req.quantity_required
+        return total
+
+    @property
+    def profit_margin(self) -> Decimal:
+        """Calculate profit margin percentage."""
+        if self.cost == 0:
+            return Decimal("0")
+        return ((self.price - self.cost) / self.cost) * 100
+
+    @property
+    def is_profitable(self) -> bool:
+        """Check if dish is profitable."""
+        return self.price > self.cost
+
+    def can_make(self, quantity: int = 1) -> bool:
+        """Check if we can make the specified quantity."""
+        for req in self.recipe_requirements.select_related("ingredient"):
+            needed = req.quantity_required * quantity
+            if req.ingredient.quantity_available < needed:
+                return False
+        return True
+
+    def get_missing_ingredients(self) -> list:
+        """Get list of ingredients with insufficient quantity."""
+        missing = []
+        for req in self.recipe_requirements.select_related("ingredient"):
+            if req.ingredient.quantity_available < req.quantity_required:
+                missing.append(
+                    {
+                        "ingredient": req.ingredient,
+                        "required": req.quantity_required,
+                        "available": req.ingredient.quantity_available,
+                        "shortage": req.quantity_required
+                        - req.ingredient.quantity_available,
+                    }
+                )
+        return missing
+
+    def clean(self):
+        """Validate model data."""
+        from django.core.exceptions import ValidationError
+
+        if self.price < 0:
+            raise ValidationError({"price": "Price cannot be negative."})
+        if self.cost < 0:
+            raise ValidationError({"cost": "Cost cannot be negative."})
 
     def __str__(self) -> str:
         return self.name
@@ -257,6 +346,39 @@ class Purchase(models.Model):
         verbose_name = "Purchase"
         verbose_name_plural = "Purchases"
         ordering = ["-timestamp"]
+
+    STATUS_PENDING = "pending"
+
+    @property
+    def item_count(self) -> int:
+        """Get total number of items in purchase."""
+        return self.items.aggregate(total=models.Sum("quantity"))["total"] or 0
+
+    @property
+    def is_completed(self) -> bool:
+        """Check if purchase is completed."""
+        return self.status == self.STATUS_COMPLETED
+
+    @property
+    def is_cancelled(self) -> bool:
+        """Check if purchase is cancelled."""
+        return self.status == self.STATUS_CANCELLED
+
+    @property
+    def total(self) -> Decimal:
+        """Alias for total_price_at_purchase."""
+        return self.total_price_at_purchase
+
+    @total.setter
+    def total(self, value: Decimal) -> None:
+        """Set total_price_at_purchase."""
+        self.total_price_at_purchase = value
+
+    def calculate_total(self) -> Decimal:
+        """Calculate total from items."""
+        return self.items.aggregate(total=models.Sum("subtotal"))["total"] or Decimal(
+            "0"
+        )
 
     def __str__(self) -> str:
         return (
