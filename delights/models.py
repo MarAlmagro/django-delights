@@ -474,7 +474,11 @@ class AuditLog(models.Model):
     ]
 
     user: models.ForeignKey[User | None, User | None] = models.ForeignKey(
-        User, on_delete=models.SET_NULL, null=True, blank=True
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="audit_logs",
     )
     action: models.CharField[str, str] = models.CharField(
         max_length=20, choices=ACTION_CHOICES
@@ -483,9 +487,15 @@ class AuditLog(models.Model):
     object_id: models.PositiveIntegerField[int | None, int | None] = (
         models.PositiveIntegerField(null=True, blank=True)
     )
+    object_repr: models.CharField[str, str] = models.CharField(
+        max_length=200, blank=True, default=""
+    )
     changes: models.JSONField = models.JSONField(default=dict)
     ip_address: models.GenericIPAddressField[str | None, str | None] = (
         models.GenericIPAddressField(null=True, blank=True)
+    )
+    user_agent: models.CharField[str, str] = models.CharField(
+        max_length=500, blank=True, default=""
     )
     timestamp: models.DateTimeField = models.DateTimeField(auto_now_add=True)
 
