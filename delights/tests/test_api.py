@@ -41,7 +41,8 @@ class TestHealthCheckAPI:
         url = reverse("api-health")
         response = api_client.get(url)
         assert response.status_code == status.HTTP_200_OK
-        assert response.data == {"status": "healthy"}
+        assert response.data["status"] == "healthy"
+        assert "checks" in response.data
 
     def test_health_check_no_auth_required(self, api_client, db):
         url = reverse("api-health")
