@@ -429,3 +429,68 @@ class PurchaseItem(models.Model):
             f"{self.quantity}x {self.dish.name} @ {self.price_at_purchase} "
             f"(Purchase #{self.purchase.id})"
         )
+
+
+class AuditLog(models.Model):
+    """
+    Audit log for tracking sensitive operations.
+
+    Records user actions for security and compliance purposes.
+
+    Attributes:
+        user: User who performed the action (nullable for system actions)
+        action: Type of action performed
+        model_name: Name of the model affected
+        object_id: ID of the object affected
+        changes: JSON field containing change details
+        ip_address: IP address of the user
+        timestamp: When the action occurred
+    """
+
+    ACTION_CREATE = "create"
+    ACTION_UPDATE = "update"
+    ACTION_DELETE = "delete"
+    ACTION_LOGIN = "login"
+    ACTION_LOGOUT = "logout"
+    ACTION_PURCHASE = "purchase"
+    ACTION_INVENTORY = "inventory"
+
+    ACTION_CHOICES = [
+        (ACTION_CREATE, "Create"),
+        (ACTION_UPDATE, "Update"),
+        (ACTION_DELETE, "Delete"),
+        (ACTION_LOGIN, "Login"),
+        (ACTION_LOGOUT, "Logout"),
+        (ACTION_PURCHASE, "Purchase"),
+        (ACTION_INVENTORY, "Inventory Adjustment"),
+    ]
+
+    user: models.ForeignKey[User | None, User | None] = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True
+    )
+    action: models.CharField[str, str] = models.CharField(
+        max_length=20, choices=ACTION_CHOICES
+    )
+    model_name: models.CharField[str, str] = models.CharField(max_length=100)
+    object_id: models.PositiveIntegerField[int | None, int | None] = (
+        models.PositiveIntegerField(null=True, blank=True)
+    )
+    changes: models.JSONField = models.JSONField(default=dict)
+    ip_address: models.GenericIPAddressField[str | None, str | None] = (
+        models.GenericIPAddressField(null=True, blank=True)
+    )
+    timestamp: models.DateTimeField = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Audit Log"
+        verbose_name_plural = "Audit Logs"
+        ordering = ["-timestamp"]
+        indexes = [
+            models.Index(fields=["user", "timestamp"]),
+            models.Index(fields=["action", "timestamp"]),
+            models.Index(fields=["model_name", "object_id"]),
+        ]
+
+    def __str__(self) -> str:
+        user_str = self.user.username if self.user else "System"
+        return f"{user_str} - {self.get_action_display()} - {self.model_name} #{self.object_id or 'N/A'}"
