@@ -72,6 +72,28 @@ REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"] = {  # noqa: F405
 
 
 # =============================================================================
+# Request ID Tracking (Development)
+# =============================================================================
+
+try:
+    import request_id
+
+    INSTALLED_APPS += ["request_id"]  # noqa: F405
+    MIDDLEWARE.insert(0, "request_id.middleware.RequestIdMiddleware")  # noqa: F405
+
+    # Add request ID filter to logging
+    LOGGING["filters"]["request_id"] = {  # noqa: F405
+        "()": "request_id.logging.RequestIdFilter",
+    }
+    LOGGING["formatters"]["verbose"]["format"] = (  # noqa: F405
+        "{levelname} {asctime} [{request_id}] [{username}] {method} {path} {module} {message}"
+    )
+    LOGGING["handlers"]["console"]["filters"].append("request_id")  # noqa: F405
+except ImportError:
+    pass
+
+
+# =============================================================================
 # Debug Toolbar - Performance Monitoring
 # =============================================================================
 

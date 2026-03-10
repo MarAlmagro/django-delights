@@ -10,6 +10,34 @@ import os
 from .base import *  # noqa: F401, F403
 
 # =============================================================================
+# Sentry Error Tracking
+# =============================================================================
+
+SENTRY_DSN = os.getenv("SENTRY_DSN")
+
+if SENTRY_DSN:
+    import sentry_sdk
+    from sentry_sdk.integrations.django import DjangoIntegration
+    from sentry_sdk.integrations.logging import LoggingIntegration
+
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        integrations=[
+            DjangoIntegration(),
+            LoggingIntegration(
+                level=logging.INFO,
+                event_level=logging.ERROR,
+            ),
+        ],
+        traces_sample_rate=float(os.getenv("SENTRY_TRACES_SAMPLE_RATE", "0.1")),
+        profiles_sample_rate=float(os.getenv("SENTRY_PROFILES_SAMPLE_RATE", "0.1")),
+        send_default_pii=False,
+        environment=os.getenv("DJANGO_ENV", "production"),
+        release=os.getenv("APP_VERSION", "1.0.0"),
+    )
+
+
+# =============================================================================
 # Production-specific Settings
 # =============================================================================
 
@@ -18,9 +46,7 @@ DEBUG = False
 
 # Allowed hosts - must be set in environment
 ALLOWED_HOSTS = [
-    host.strip()
-    for host in os.getenv("ALLOWED_HOSTS", "").split(",")
-    if host.strip()
+    host.strip() for host in os.getenv("ALLOWED_HOSTS", "").split(",") if host.strip()
 ]
 
 # Validate that SECRET_KEY is set (base.py raises error if not)
@@ -49,7 +75,9 @@ else:
     # Individual environment variables
     DATABASES = {
         "default": {
-            "ENGINE": os.getenv("DB_ENGINE", "django.db.backends.postgresql"),
+            "ENGINE": os.getenv(
+                "DB_ENGINE", "django_prometheus.db.backends.postgresql"
+            ),
             "NAME": os.getenv("DB_NAME", "django_delights"),
             "USER": os.getenv("DB_USER", "postgres"),
             "PASSWORD": os.getenv("DB_PASSWORD", ""),
@@ -146,7 +174,8 @@ if REDIS_URL:
 # Logging - Production format
 # =============================================================================
 
-LOGGING["handlers"]["console"]["formatter"] = "verbose"  # noqa: F405
+# Use JSON logging in production for better log aggregation
+LOGGING["handlers"]["console"]["formatter"] = "json"  # noqa: F405
 LOGGING["root"]["level"] = os.getenv("LOG_LEVEL", "INFO")  # noqa: F405
 
 
