@@ -25,11 +25,10 @@ from delights.models import (
     RecipeRequirement,
     Unit,
 )
-from delights.views import (
-    calculate_dish_cost,
+from delights.services.pricing import calculate_dish_cost
+from delights.services.availability import (
     update_dish_availability,
     update_menu_availability,
-    update_menu_cost,
 )
 
 from .permissions import (
@@ -313,7 +312,7 @@ class MenuViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         """Create menu with auto-calculated cost and availability."""
         menu = serializer.save(cost=Decimal("0"), is_available=False)
-        menu.cost = update_menu_cost(menu)
+        menu.cost = calculate_menu_cost(menu)
         menu.save()
         update_menu_availability(menu)
         return menu
@@ -321,7 +320,7 @@ class MenuViewSet(viewsets.ModelViewSet):
     def perform_update(self, serializer):
         """Update menu and recalculate cost/availability."""
         menu = serializer.save()
-        menu.cost = update_menu_cost(menu)
+        menu.cost = calculate_menu_cost(menu)
         menu.save()
         update_menu_availability(menu)
         return menu
@@ -336,7 +335,7 @@ class MenuViewSet(viewsets.ModelViewSet):
             menu.dishes.add(dish)
 
             # Recalculate cost and availability
-            menu.cost = update_menu_cost(menu)
+            menu.cost = calculate_menu_cost(menu)
             menu.save()
             update_menu_availability(menu)
 
@@ -357,7 +356,7 @@ class MenuViewSet(viewsets.ModelViewSet):
             menu.dishes.remove(dish)
 
             # Recalculate cost and availability
-            menu.cost = update_menu_cost(menu)
+            menu.cost = calculate_menu_cost(menu)
             menu.save()
             update_menu_availability(menu)
 
