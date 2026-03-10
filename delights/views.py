@@ -32,6 +32,10 @@ from .forms import (
     InventoryAdjustmentForm,
     MenuForm,
 )
+from .services.availability import (
+    update_dish_availability,
+    update_menu_availability,
+)
 
 # URL name constants
 URL_UNITS_LIST = "units:list"
@@ -157,8 +161,7 @@ def inventory_adjust(request, pk):
             ingredient.save()
 
             # Trigger availability recalculation for Dishes and Menus
-            update_dish_availability_from_ingredient(ingredient)
-            update_menu_availability()
+            update_dishes_for_ingredient(ingredient)
 
             messages.success(
                 request,
@@ -176,70 +179,6 @@ def inventory_adjust(request, pk):
             "form": form,
         },
     )
-
-
-# Helper functions for cost and availability calculations
-GLOBAL_MARGIN = 0.20  # 20% margin
-
-
-def calculate_dish_cost(dish):
-    """Calculate dish cost from recipe requirements"""
-    total_cost = 0
-    for requirement in dish.recipe_requirements.all():
-        total_cost += (
-            requirement.ingredient.price_per_unit * requirement.quantity_required
-        )
-    return total_cost
-
-
-def check_dish_availability(dish):
-    """Check if dish is available (all ingredients have sufficient quantity)"""
-    if not dish.recipe_requirements.exists():
-        return False
-    for requirement in dish.recipe_requirements.all():
-        if requirement.ingredient.quantity_available < requirement.quantity_required:
-            return False
-    return True
-
-
-def update_dish_availability(dish):
-    """Update dish cost and availability"""
-    dish.cost = calculate_dish_cost(dish)
-    dish.is_available = (
-        check_dish_availability(dish) and dish.recipe_requirements.exists()
-    )
-    dish.save()
-
-
-def update_dish_availability_from_ingredient(ingredient):
-    """Update all dishes that use this ingredient"""
-    dishes = Dish.objects.filter(recipe_requirements__ingredient=ingredient).distinct()
-    for dish in dishes:
-        update_dish_availability(dish)
-
-
-def update_menu_cost(menu):
-    """Calculate menu cost from dishes"""
-    total_cost = sum(dish.cost for dish in menu.dishes.all())
-    return total_cost
-
-
-def check_menu_availability(menu):
-    """Check if menu is available (all dishes are available)"""
-    return all(dish.is_available for dish in menu.dishes.all()) and menu.dishes.exists()
-
-
-def update_menu_availability(menu=None):
-    """Update menu cost and availability"""
-    if menu:
-        menus = [menu]
-    else:
-        menus = Menu.objects.all()
-
-    for menu in menus:
-        menu.cost = update_menu_cost(menu)
-        menu.is_available = check_menu_availability(menu)
-        menu.save()
 
 
 # Dishes CRUD
@@ -320,7 +259,7 @@ def manage_recipe_requirements(request, pk):
 
                 # Set price using global margin if not set
                 if dish.price == 0 and dish.cost > 0:
-                    dish.price = dish.cost * (1 + GLOBAL_MARGIN)
+                    dish.price = calculate_suggested_price(dish.cost)
                     dish.save()
 
                 messages.success(
@@ -380,7 +319,7 @@ class MenuCreateView(LoginRequiredMixin, CreateView):
     def form_valid(self, form):
         menu = form.save(commit=False)
         menu.cost = 0  # Will be calculated when dishes are added
-        menu.price = menu.cost * (1 + GLOBAL_MARGIN) if menu.cost > 0 else 0
+        menu.price = calculate_suggested_price(menu.cost) if menu.cost > 0 else 0
         menu.is_available = False
         menu.save()
 
@@ -421,7 +360,7 @@ def manage_menu_items(request, pk):
 
             # Set price using global margin if not set
             if menu.price == 0 and menu.cost > 0:
-                menu.price = menu.cost * (1 + GLOBAL_MARGIN)
+                menu.price = calculate_suggested_price(menu.cost)
                 menu.save()
 
             messages.success(request, f"Added {dish.name} to menu.")
@@ -631,9 +570,7 @@ def _create_purchase_and_deduct_inventory(request, purchase_items, purchase_tota
                 locked_ingredient.quantity_available = 0
             locked_ingredient.save()
 
-            update_dish_availability_from_ingredient(locked_ingredient)
-
-    update_menu_availability()
+            update_dishes_for_ingredient(locked_ingredient)
 
     purchase.total_price_at_purchase = total_actual
     purchase.save()
