@@ -45,6 +45,8 @@ urlpatterns = [
         SpectacularRedocView.as_view(url_name="schema"),
         name="redoc",
     ),
+    # Metrics
+    path("", include("django_prometheus.urls")),
 ]
 
 # Django Debug Toolbar (development only)
