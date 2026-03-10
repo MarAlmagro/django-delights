@@ -9,6 +9,8 @@ pytest>=8.0.0
 pytest-django>=4.8.0
 pytest-cov>=4.1.0
 factory-boy>=3.3.0
+pytest-playwright>=0.4.0
+locust>=2.24.0
 
 # Code Quality
 pre-commit>=3.6.0
