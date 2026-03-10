@@ -1,5 +1,6 @@
 from django import forms
 from django.core.exceptions import ValidationError
+import bleach
 
 from .models import Unit, Ingredient, Dish, RecipeRequirement, Menu
 
@@ -48,7 +49,7 @@ class IngredientForm(forms.ModelForm):
     def clean_name(self):
         name = self.cleaned_data.get("name")
         if name:
-            name = name.strip()
+            name = bleach.clean(name.strip(), tags=[], strip=True)
             if len(name) < 2:
                 raise ValidationError(ERROR_NAME_MIN_LENGTH)
         return name
@@ -91,10 +92,18 @@ class DishForm(forms.ModelForm):
     def clean_name(self):
         name = self.cleaned_data.get("name")
         if name:
-            name = name.strip()
+            name = bleach.clean(name.strip(), tags=[], strip=True)
             if len(name) < 2:
                 raise ValidationError(ERROR_NAME_MIN_LENGTH)
         return name
+
+    def clean_description(self):
+        description = self.cleaned_data.get("description")
+        if description:
+            description = bleach.clean(
+                description, tags=["p", "br", "strong", "em"], strip=True
+            )
+        return description
 
     def clean_price(self):
         price = self.cleaned_data.get("price")
@@ -177,10 +186,18 @@ class MenuForm(forms.ModelForm):
     def clean_name(self):
         name = self.cleaned_data.get("name")
         if name:
-            name = name.strip()
+            name = bleach.clean(name.strip(), tags=[], strip=True)
             if len(name) < 2:
                 raise ValidationError(ERROR_NAME_MIN_LENGTH)
         return name
+
+    def clean_description(self):
+        description = self.cleaned_data.get("description")
+        if description:
+            description = bleach.clean(
+                description, tags=["p", "br", "strong", "em"], strip=True
+            )
+        return description
 
     def clean_price(self):
         price = self.cleaned_data.get("price")
