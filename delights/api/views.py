@@ -25,7 +25,7 @@ from delights.models import (
     RecipeRequirement,
     Unit,
 )
-from delights.services.pricing import calculate_dish_cost
+from delights.services.pricing import calculate_dish_cost, calculate_menu_cost
 from delights.services.availability import (
     update_dish_availability,
     update_menu_availability,

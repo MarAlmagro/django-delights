@@ -1,0 +1,3027 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Django Delights API",
+    "version": "1.0.0",
+    "description": "REST API for restaurant inventory and ordering management"
+  },
+  "paths": {
+    "/api/v1/auth/token/": {
+      "post": {
+        "operationId": "auth_token_create",
+        "description": "Takes a set of user credentials and returns an access and refresh JSON web\ntoken pair to prove the authentication of those credentials.",
+        "tags": [
+          "auth"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TokenObtainPairRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/TokenObtainPairRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/TokenObtainPairRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenObtainPair"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/auth/token/refresh/": {
+      "post": {
+        "operationId": "auth_token_refresh_create",
+        "description": "Takes a refresh type JSON web token and returns an access type JSON web\ntoken if the refresh token is valid.",
+        "tags": [
+          "auth"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TokenRefreshRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/TokenRefreshRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/TokenRefreshRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenRefresh"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/auth/token/verify/": {
+      "post": {
+        "operationId": "auth_token_verify_create",
+        "description": "Takes a token and indicates if it is valid.  This view provides no\ninformation about a token's fitness for a particular use.",
+        "tags": [
+          "auth"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TokenVerifyRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/TokenVerifyRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/TokenVerifyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "No response body"
+          }
+        }
+      }
+    },
+    "/api/v1/dashboard/": {
+      "get": {
+        "operationId": "dashboard_retrieve",
+        "description": "Get revenue, cost, profit, and other metrics.",
+        "summary": "Get dashboard metrics",
+        "tags": [
+          "dashboard"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Dashboard"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/dishes/": {
+      "get": {
+        "operationId": "dishes_list",
+        "description": "ViewSet for managing dishes.\nStaff can create/edit dishes (except prices).\nAdmin can edit prices.",
+        "summary": "List all dishes",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "A page number within the paginated result set.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "tags": [
+          "dishes"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedDishListList"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      },
+      "post": {
+        "operationId": "dishes_create",
+        "description": "ViewSet for managing dishes.\nStaff can create/edit dishes (except prices).\nAdmin can edit prices.",
+        "summary": "Create a new dish",
+        "tags": [
+          "dishes"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DishCreateRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/DishCreateRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/DishCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DishCreate"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/dishes/{id}/": {
+      "get": {
+        "operationId": "dishes_retrieve",
+        "description": "ViewSet for managing dishes.\nStaff can create/edit dishes (except prices).\nAdmin can edit prices.",
+        "summary": "Get dish details",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "A unique integer value identifying this Dish.",
+            "required": true
+          }
+        ],
+        "tags": [
+          "dishes"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Dish"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      },
+      "put": {
+        "operationId": "dishes_update",
+        "description": "ViewSet for managing dishes.\nStaff can create/edit dishes (except prices).\nAdmin can edit prices.",
+        "summary": "Update a dish",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "A unique integer value identifying this Dish.",
+            "required": true
+          }
+        ],
+        "tags": [
+          "dishes"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DishCreateRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/DishCreateRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/DishCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DishCreate"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      },
+      "patch": {
+        "operationId": "dishes_partial_update",
+        "description": "ViewSet for managing dishes.\nStaff can create/edit dishes (except prices).\nAdmin can edit prices.",
+        "summary": "Partially update a dish",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "A unique integer value identifying this Dish.",
+            "required": true
+          }
+        ],
+        "tags": [
+          "dishes"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedDishCreateRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedDishCreateRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedDishCreateRequest"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DishCreate"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      },
+      "delete": {
+        "operationId": "dishes_destroy",
+        "description": "ViewSet for managing dishes.\nStaff can create/edit dishes (except prices).\nAdmin can edit prices.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "A unique integer value identifying this Dish.",
+            "required": true
+          }
+        ],
+        "tags": [
+          "dishes"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No response body"
+          }
+        }
+      }
+    },
+    "/api/v1/dishes/{id}/add_requirement/": {
+      "post": {
+        "operationId": "dishes_add_requirement_create",
+        "description": "Add a recipe requirement to the dish.",
+        "summary": "Add recipe requirement to dish",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "A unique integer value identifying this Dish.",
+            "required": true
+          }
+        ],
+        "tags": [
+          "dishes"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecipeRequirementCreateRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/RecipeRequirementCreateRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/RecipeRequirementCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Dish"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/dishes/{id}/remove_requirement/{req_id}/": {
+      "delete": {
+        "operationId": "dishes_remove_requirement_destroy",
+        "description": "Remove a recipe requirement from the dish.",
+        "summary": "Remove recipe requirement from dish",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "A unique integer value identifying this Dish.",
+            "required": true
+          },
+          {
+            "in": "path",
+            "name": "req_id",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "tags": [
+          "dishes"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No response body"
+          }
+        }
+      }
+    },
+    "/api/v1/dishes/available/": {
+      "get": {
+        "operationId": "dishes_available_retrieve",
+        "description": "List only available dishes.",
+        "summary": "Get only available dishes",
+        "tags": [
+          "dishes"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Dish"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/health/": {
+      "get": {
+        "operationId": "health_retrieve",
+        "description": "Returns service health status with dependency checks",
+        "summary": "Health check",
+        "tags": [
+          "health"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "cookieAuth": []
+          },
+          {}
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string"
+                    },
+                    "checks": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            },
+            "description": ""
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string"
+                    },
+                    "checks": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/ingredients/": {
+      "get": {
+        "operationId": "ingredients_list",
+        "description": "ViewSet for managing ingredients.\nStaff can view and adjust inventory.\nAdmin can create/update/delete.",
+        "summary": "List all ingredients",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "A page number within the paginated result set.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "tags": [
+          "ingredients"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedIngredientListList"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      },
+      "post": {
+        "operationId": "ingredients_create",
+        "description": "ViewSet for managing ingredients.\nStaff can view and adjust inventory.\nAdmin can create/update/delete.",
+        "summary": "Create a new ingredient",
+        "tags": [
+          "ingredients"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IngredientRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/IngredientRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/IngredientRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Ingredient"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/ingredients/{id}/": {
+      "get": {
+        "operationId": "ingredients_retrieve",
+        "description": "ViewSet for managing ingredients.\nStaff can view and adjust inventory.\nAdmin can create/update/delete.",
+        "summary": "Get ingredient details",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "A unique integer value identifying this Ingredient.",
+            "required": true
+          }
+        ],
+        "tags": [
+          "ingredients"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Ingredient"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      },
+      "put": {
+        "operationId": "ingredients_update",
+        "description": "ViewSet for managing ingredients.\nStaff can view and adjust inventory.\nAdmin can create/update/delete.",
+        "summary": "Update an ingredient",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "A unique integer value identifying this Ingredient.",
+            "required": true
+          }
+        ],
+        "tags": [
+          "ingredients"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IngredientRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/IngredientRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/IngredientRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Ingredient"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      },
+      "patch": {
+        "operationId": "ingredients_partial_update",
+        "description": "ViewSet for managing ingredients.\nStaff can view and adjust inventory.\nAdmin can create/update/delete.",
+        "summary": "Partially update an ingredient",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "A unique integer value identifying this Ingredient.",
+            "required": true
+          }
+        ],
+        "tags": [
+          "ingredients"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedIngredientRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedIngredientRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedIngredientRequest"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Ingredient"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      },
+      "delete": {
+        "operationId": "ingredients_destroy",
+        "description": "ViewSet for managing ingredients.\nStaff can view and adjust inventory.\nAdmin can create/update/delete.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "A unique integer value identifying this Ingredient.",
+            "required": true
+          }
+        ],
+        "tags": [
+          "ingredients"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No response body"
+          }
+        }
+      }
+    },
+    "/api/v1/ingredients/{id}/adjust/": {
+      "post": {
+        "operationId": "ingredients_adjust_create",
+        "description": "Adjust the inventory quantity of an ingredient.",
+        "summary": "Adjust ingredient inventory",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "A unique integer value identifying this Ingredient.",
+            "required": true
+          }
+        ],
+        "tags": [
+          "ingredients"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InventoryAdjustmentRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/InventoryAdjustmentRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/InventoryAdjustmentRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Ingredient"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/menus/": {
+      "get": {
+        "operationId": "menus_list",
+        "description": "ViewSet for managing menus.\nStaff can create/edit menus (except prices).\nAdmin can edit prices.",
+        "summary": "List all menus",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "A page number within the paginated result set.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "tags": [
+          "menus"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedMenuListList"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      },
+      "post": {
+        "operationId": "menus_create",
+        "description": "ViewSet for managing menus.\nStaff can create/edit menus (except prices).\nAdmin can edit prices.",
+        "summary": "Create a new menu",
+        "tags": [
+          "menus"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MenuRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/MenuRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/MenuRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Menu"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/menus/{id}/": {
+      "get": {
+        "operationId": "menus_retrieve",
+        "description": "ViewSet for managing menus.\nStaff can create/edit menus (except prices).\nAdmin can edit prices.",
+        "summary": "Get menu details",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "A unique integer value identifying this Menu.",
+            "required": true
+          }
+        ],
+        "tags": [
+          "menus"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Menu"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      },
+      "put": {
+        "operationId": "menus_update",
+        "description": "ViewSet for managing menus.\nStaff can create/edit menus (except prices).\nAdmin can edit prices.",
+        "summary": "Update a menu",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "A unique integer value identifying this Menu.",
+            "required": true
+          }
+        ],
+        "tags": [
+          "menus"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MenuRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/MenuRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/MenuRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Menu"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      },
+      "patch": {
+        "operationId": "menus_partial_update",
+        "description": "ViewSet for managing menus.\nStaff can create/edit menus (except prices).\nAdmin can edit prices.",
+        "summary": "Partially update a menu",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "A unique integer value identifying this Menu.",
+            "required": true
+          }
+        ],
+        "tags": [
+          "menus"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedMenuRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedMenuRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedMenuRequest"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Menu"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      },
+      "delete": {
+        "operationId": "menus_destroy",
+        "description": "ViewSet for managing menus.\nStaff can create/edit menus (except prices).\nAdmin can edit prices.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "A unique integer value identifying this Menu.",
+            "required": true
+          }
+        ],
+        "tags": [
+          "menus"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No response body"
+          }
+        }
+      }
+    },
+    "/api/v1/menus/{id}/add_dish/{dish_id}/": {
+      "post": {
+        "operationId": "menus_add_dish_create",
+        "description": "Add a dish to the menu.",
+        "summary": "Add dish to menu",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "dish_id",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "A unique integer value identifying this Menu.",
+            "required": true
+          }
+        ],
+        "tags": [
+          "menus"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MenuRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/MenuRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/MenuRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Menu"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/menus/{id}/remove_dish/{dish_id}/": {
+      "delete": {
+        "operationId": "menus_remove_dish_destroy",
+        "description": "Remove a dish from the menu.",
+        "summary": "Remove dish from menu",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "dish_id",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "A unique integer value identifying this Menu.",
+            "required": true
+          }
+        ],
+        "tags": [
+          "menus"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No response body"
+          }
+        }
+      }
+    },
+    "/api/v1/purchases/": {
+      "get": {
+        "operationId": "purchases_list",
+        "description": "ViewSet for managing purchases.\nStaff can view their own purchases.\nAdmin can view all purchases.",
+        "summary": "List purchases",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "A page number within the paginated result set.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "tags": [
+          "purchases"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedPurchaseListList"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      },
+      "post": {
+        "operationId": "purchases_create",
+        "description": "Create a purchase with atomic inventory deduction.",
+        "summary": "Create a new purchase",
+        "tags": [
+          "purchases"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PurchaseCreateRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/PurchaseCreateRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/PurchaseCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PurchaseCreate"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/purchases/{id}/": {
+      "get": {
+        "operationId": "purchases_retrieve",
+        "description": "ViewSet for managing purchases.\nStaff can view their own purchases.\nAdmin can view all purchases.",
+        "summary": "Get purchase details",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "A unique integer value identifying this Purchase.",
+            "required": true
+          }
+        ],
+        "tags": [
+          "purchases"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Purchase"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/units/": {
+      "get": {
+        "operationId": "units_list",
+        "description": "ViewSet for managing units of measurement.\nAdmin only for create/update/delete operations.",
+        "summary": "List all units",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "A page number within the paginated result set.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "tags": [
+          "units"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedUnitList"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      },
+      "post": {
+        "operationId": "units_create",
+        "description": "ViewSet for managing units of measurement.\nAdmin only for create/update/delete operations.",
+        "summary": "Create a new unit",
+        "tags": [
+          "units"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UnitRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/UnitRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/UnitRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unit"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    },
+    "/api/v1/units/{id}/": {
+      "get": {
+        "operationId": "units_retrieve",
+        "description": "ViewSet for managing units of measurement.\nAdmin only for create/update/delete operations.",
+        "summary": "Get unit details",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "A unique integer value identifying this Unit.",
+            "required": true
+          }
+        ],
+        "tags": [
+          "units"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unit"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      },
+      "put": {
+        "operationId": "units_update",
+        "description": "ViewSet for managing units of measurement.\nAdmin only for create/update/delete operations.",
+        "summary": "Update a unit",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "A unique integer value identifying this Unit.",
+            "required": true
+          }
+        ],
+        "tags": [
+          "units"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UnitRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/UnitRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/UnitRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unit"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      },
+      "patch": {
+        "operationId": "units_partial_update",
+        "description": "ViewSet for managing units of measurement.\nAdmin only for create/update/delete operations.",
+        "summary": "Partially update a unit",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "A unique integer value identifying this Unit.",
+            "required": true
+          }
+        ],
+        "tags": [
+          "units"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedUnitRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedUnitRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchedUnitRequest"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unit"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      },
+      "delete": {
+        "operationId": "units_destroy",
+        "description": "ViewSet for managing units of measurement.\nAdmin only for create/update/delete operations.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "A unique integer value identifying this Unit.",
+            "required": true
+          }
+        ],
+        "tags": [
+          "units"
+        ],
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No response body"
+          }
+        }
+      }
+    },
+    "/api/v1/units/{id}/toggle_active/": {
+      "post": {
+        "operationId": "units_toggle_active_create",
+        "description": "Toggle the active status of a unit.",
+        "summary": "Toggle unit active status",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "A unique integer value identifying this Unit.",
+            "required": true
+          }
+        ],
+        "tags": [
+          "units"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UnitRequest"
+              }
+            },
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/UnitRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/UnitRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "jwtAuth": []
+          },
+          {
+            "cookieAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unit"
+                }
+              }
+            },
+            "description": ""
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ActionEnum": {
+        "enum": [
+          "add",
+          "subtract"
+        ],
+        "type": "string",
+        "description": "* `add` - add\n* `subtract` - subtract"
+      },
+      "Dashboard": {
+        "type": "object",
+        "description": "Serializer for dashboard metrics.",
+        "properties": {
+          "total_revenue": {
+            "type": "string",
+            "format": "decimal",
+            "pattern": "^-?\\d{0,10}(?:\\.\\d{0,2})?$"
+          },
+          "total_cost": {
+            "type": "string",
+            "format": "decimal",
+            "pattern": "^-?\\d{0,10}(?:\\.\\d{0,2})?$"
+          },
+          "total_profit": {
+            "type": "string",
+            "format": "decimal",
+            "pattern": "^-?\\d{0,10}(?:\\.\\d{0,2})?$"
+          },
+          "total_purchases": {
+            "type": "integer"
+          },
+          "top_dishes": {
+            "type": "array",
+            "items": {}
+          },
+          "low_stock_ingredients": {
+            "type": "array",
+            "items": {}
+          }
+        },
+        "required": [
+          "low_stock_ingredients",
+          "top_dishes",
+          "total_cost",
+          "total_profit",
+          "total_purchases",
+          "total_revenue"
+        ]
+      },
+      "Dish": {
+        "type": "object",
+        "description": "Serializer for Dish model with recipe requirements.",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "readOnly": true
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "description": {
+            "type": "string"
+          },
+          "cost": {
+            "type": "string",
+            "format": "decimal",
+            "pattern": "^-?\\d{0,8}(?:\\.\\d{0,2})?$",
+            "readOnly": true,
+            "description": "Auto-calculated from ingredients"
+          },
+          "calculated_cost": {
+            "type": "string",
+            "readOnly": true
+          },
+          "price": {
+            "type": "string",
+            "format": "decimal",
+            "pattern": "^-?\\d{0,8}(?:\\.\\d{0,2})?$",
+            "description": "Selling price"
+          },
+          "is_available": {
+            "type": "boolean",
+            "readOnly": true,
+            "description": "Available if all ingredients are sufficient"
+          },
+          "recipe_requirements": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RecipeRequirement"
+            },
+            "readOnly": true
+          }
+        },
+        "required": [
+          "calculated_cost",
+          "cost",
+          "id",
+          "is_available",
+          "name",
+          "price",
+          "recipe_requirements"
+        ]
+      },
+      "DishCreate": {
+        "type": "object",
+        "description": "Serializer for creating/updating dishes.",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "description": {
+            "type": "string"
+          },
+          "price": {
+            "type": "string",
+            "format": "decimal",
+            "pattern": "^-?\\d{0,8}(?:\\.\\d{0,2})?$",
+            "description": "Selling price"
+          }
+        },
+        "required": [
+          "name",
+          "price"
+        ]
+      },
+      "DishCreateRequest": {
+        "type": "object",
+        "description": "Serializer for creating/updating dishes.",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "description": {
+            "type": "string"
+          },
+          "price": {
+            "type": "string",
+            "format": "decimal",
+            "pattern": "^-?\\d{0,8}(?:\\.\\d{0,2})?$",
+            "description": "Selling price"
+          }
+        },
+        "required": [
+          "name",
+          "price"
+        ]
+      },
+      "DishList": {
+        "type": "object",
+        "description": "Lightweight serializer for dish lists.",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "readOnly": true
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "description": {
+            "type": "string"
+          },
+          "cost": {
+            "type": "string",
+            "format": "decimal",
+            "pattern": "^-?\\d{0,8}(?:\\.\\d{0,2})?$",
+            "description": "Auto-calculated from ingredients"
+          },
+          "price": {
+            "type": "string",
+            "format": "decimal",
+            "pattern": "^-?\\d{0,8}(?:\\.\\d{0,2})?$",
+            "description": "Selling price"
+          },
+          "is_available": {
+            "type": "boolean",
+            "description": "Available if all ingredients are sufficient"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "price"
+        ]
+      },
+      "DishListRequest": {
+        "type": "object",
+        "description": "Lightweight serializer for dish lists.",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "description": {
+            "type": "string"
+          },
+          "cost": {
+            "type": "string",
+            "format": "decimal",
+            "pattern": "^-?\\d{0,8}(?:\\.\\d{0,2})?$",
+            "description": "Auto-calculated from ingredients"
+          },
+          "price": {
+            "type": "string",
+            "format": "decimal",
+            "pattern": "^-?\\d{0,8}(?:\\.\\d{0,2})?$",
+            "description": "Selling price"
+          },
+          "is_available": {
+            "type": "boolean",
+            "description": "Available if all ingredients are sufficient"
+          }
+        },
+        "required": [
+          "name",
+          "price"
+        ]
+      },
+      "Ingredient": {
+        "type": "object",
+        "description": "Serializer for Ingredient model.",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "readOnly": true
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "unit": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Unit"
+              }
+            ],
+            "readOnly": true
+          },
+          "price_per_unit": {
+            "type": "string",
+            "format": "decimal",
+            "pattern": "^-?\\d{0,8}(?:\\.\\d{0,2})?$",
+            "description": "Cost per unit of measurement"
+          },
+          "quantity_available": {
+            "type": "string",
+            "format": "decimal",
+            "pattern": "^-?\\d{0,8}(?:\\.\\d{0,2})?$"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "price_per_unit",
+          "unit"
+        ]
+      },
+      "IngredientList": {
+        "type": "object",
+        "description": "Lightweight serializer for ingredient lists.",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "readOnly": true
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "unit_name": {
+            "type": "string",
+            "readOnly": true
+          },
+          "price_per_unit": {
+            "type": "string",
+            "format": "decimal",
+            "pattern": "^-?\\d{0,8}(?:\\.\\d{0,2})?$",
+            "description": "Cost per unit of measurement"
+          },
+          "quantity_available": {
+            "type": "string",
+            "format": "decimal",
+            "pattern": "^-?\\d{0,8}(?:\\.\\d{0,2})?$"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "price_per_unit",
+          "unit_name"
+        ]
+      },
+      "IngredientRequest": {
+        "type": "object",
+        "description": "Serializer for Ingredient model.",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "unit_id": {
+            "type": "integer",
+            "writeOnly": true
+          },
+          "price_per_unit": {
+            "type": "string",
+            "format": "decimal",
+            "pattern": "^-?\\d{0,8}(?:\\.\\d{0,2})?$",
+            "description": "Cost per unit of measurement"
+          },
+          "quantity_available": {
+            "type": "string",
+            "format": "decimal",
+            "pattern": "^-?\\d{0,8}(?:\\.\\d{0,2})?$"
+          }
+        },
+        "required": [
+          "name",
+          "price_per_unit",
+          "unit_id"
+        ]
+      },
+      "InventoryAdjustmentRequest": {
+        "type": "object",
+        "description": "Serializer for adjusting inventory.",
+        "properties": {
+          "adjustment": {
+            "type": "string",
+            "format": "decimal",
+            "pattern": "^-?\\d{0,8}(?:\\.\\d{0,2})?$"
+          },
+          "action": {
+            "$ref": "#/components/schemas/ActionEnum"
+          }
+        },
+        "required": [
+          "action",
+          "adjustment"
+        ]
+      },
+      "Menu": {
+        "type": "object",
+        "description": "Serializer for Menu model with dishes.",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "readOnly": true
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "description": {
+            "type": "string"
+          },
+          "dishes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DishList"
+            },
+            "readOnly": true
+          },
+          "cost": {
+            "type": "string",
+            "format": "decimal",
+            "pattern": "^-?\\d{0,8}(?:\\.\\d{0,2})?$",
+            "readOnly": true,
+            "description": "Auto-calculated from dishes"
+          },
+          "calculated_cost": {
+            "type": "string",
+            "readOnly": true
+          },
+          "price": {
+            "type": "string",
+            "format": "decimal",
+            "pattern": "^-?\\d{0,8}(?:\\.\\d{0,2})?$",
+            "description": "Selling price"
+          },
+          "is_available": {
+            "type": "boolean",
+            "readOnly": true,
+            "description": "Available if all dishes are available"
+          }
+        },
+        "required": [
+          "calculated_cost",
+          "cost",
+          "dishes",
+          "id",
+          "is_available",
+          "name",
+          "price"
+        ]
+      },
+      "MenuList": {
+        "type": "object",
+        "description": "Lightweight serializer for menu lists.",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "readOnly": true
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "description": {
+            "type": "string"
+          },
+          "cost": {
+            "type": "string",
+            "format": "decimal",
+            "pattern": "^-?\\d{0,8}(?:\\.\\d{0,2})?$",
+            "description": "Auto-calculated from dishes"
+          },
+          "price": {
+            "type": "string",
+            "format": "decimal",
+            "pattern": "^-?\\d{0,8}(?:\\.\\d{0,2})?$",
+            "description": "Selling price"
+          },
+          "is_available": {
+            "type": "boolean",
+            "description": "Available if all dishes are available"
+          },
+          "dish_count": {
+            "type": "string",
+            "readOnly": true
+          }
+        },
+        "required": [
+          "dish_count",
+          "id",
+          "name",
+          "price"
+        ]
+      },
+      "MenuRequest": {
+        "type": "object",
+        "description": "Serializer for Menu model with dishes.",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "description": {
+            "type": "string"
+          },
+          "dish_ids": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "writeOnly": true
+            },
+            "writeOnly": true
+          },
+          "price": {
+            "type": "string",
+            "format": "decimal",
+            "pattern": "^-?\\d{0,8}(?:\\.\\d{0,2})?$",
+            "description": "Selling price"
+          }
+        },
+        "required": [
+          "name",
+          "price"
+        ]
+      },
+      "PaginatedDishListList": {
+        "type": "object",
+        "required": [
+          "count",
+          "results"
+        ],
+        "properties": {
+          "count": {
+            "type": "integer",
+            "example": 123
+          },
+          "next": {
+            "type": "string",
+            "nullable": true,
+            "format": "uri",
+            "example": "http://api.example.org/accounts/?page=4"
+          },
+          "previous": {
+            "type": "string",
+            "nullable": true,
+            "format": "uri",
+            "example": "http://api.example.org/accounts/?page=2"
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DishList"
+            }
+          }
+        }
+      },
+      "PaginatedIngredientListList": {
+        "type": "object",
+        "required": [
+          "count",
+          "results"
+        ],
+        "properties": {
+          "count": {
+            "type": "integer",
+            "example": 123
+          },
+          "next": {
+            "type": "string",
+            "nullable": true,
+            "format": "uri",
+            "example": "http://api.example.org/accounts/?page=4"
+          },
+          "previous": {
+            "type": "string",
+            "nullable": true,
+            "format": "uri",
+            "example": "http://api.example.org/accounts/?page=2"
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/IngredientList"
+            }
+          }
+        }
+      },
+      "PaginatedMenuListList": {
+        "type": "object",
+        "required": [
+          "count",
+          "results"
+        ],
+        "properties": {
+          "count": {
+            "type": "integer",
+            "example": 123
+          },
+          "next": {
+            "type": "string",
+            "nullable": true,
+            "format": "uri",
+            "example": "http://api.example.org/accounts/?page=4"
+          },
+          "previous": {
+            "type": "string",
+            "nullable": true,
+            "format": "uri",
+            "example": "http://api.example.org/accounts/?page=2"
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MenuList"
+            }
+          }
+        }
+      },
+      "PaginatedPurchaseListList": {
+        "type": "object",
+        "required": [
+          "count",
+          "results"
+        ],
+        "properties": {
+          "count": {
+            "type": "integer",
+            "example": 123
+          },
+          "next": {
+            "type": "string",
+            "nullable": true,
+            "format": "uri",
+            "example": "http://api.example.org/accounts/?page=4"
+          },
+          "previous": {
+            "type": "string",
+            "nullable": true,
+            "format": "uri",
+            "example": "http://api.example.org/accounts/?page=2"
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PurchaseList"
+            }
+          }
+        }
+      },
+      "PaginatedUnitList": {
+        "type": "object",
+        "required": [
+          "count",
+          "results"
+        ],
+        "properties": {
+          "count": {
+            "type": "integer",
+            "example": 123
+          },
+          "next": {
+            "type": "string",
+            "nullable": true,
+            "format": "uri",
+            "example": "http://api.example.org/accounts/?page=4"
+          },
+          "previous": {
+            "type": "string",
+            "nullable": true,
+            "format": "uri",
+            "example": "http://api.example.org/accounts/?page=2"
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Unit"
+            }
+          }
+        }
+      },
+      "PatchedDishCreateRequest": {
+        "type": "object",
+        "description": "Serializer for creating/updating dishes.",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "description": {
+            "type": "string"
+          },
+          "price": {
+            "type": "string",
+            "format": "decimal",
+            "pattern": "^-?\\d{0,8}(?:\\.\\d{0,2})?$",
+            "description": "Selling price"
+          }
+        }
+      },
+      "PatchedIngredientRequest": {
+        "type": "object",
+        "description": "Serializer for Ingredient model.",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "unit_id": {
+            "type": "integer",
+            "writeOnly": true
+          },
+          "price_per_unit": {
+            "type": "string",
+            "format": "decimal",
+            "pattern": "^-?\\d{0,8}(?:\\.\\d{0,2})?$",
+            "description": "Cost per unit of measurement"
+          },
+          "quantity_available": {
+            "type": "string",
+            "format": "decimal",
+            "pattern": "^-?\\d{0,8}(?:\\.\\d{0,2})?$"
+          }
+        }
+      },
+      "PatchedMenuRequest": {
+        "type": "object",
+        "description": "Serializer for Menu model with dishes.",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "description": {
+            "type": "string"
+          },
+          "dish_ids": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "writeOnly": true
+            },
+            "writeOnly": true
+          },
+          "price": {
+            "type": "string",
+            "format": "decimal",
+            "pattern": "^-?\\d{0,8}(?:\\.\\d{0,2})?$",
+            "description": "Selling price"
+          }
+        }
+      },
+      "PatchedUnitRequest": {
+        "type": "object",
+        "description": "Serializer for Unit model.",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 50
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "is_active": {
+            "type": "boolean"
+          }
+        }
+      },
+      "Purchase": {
+        "type": "object",
+        "description": "Serializer for Purchase model with items.",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "readOnly": true
+          },
+          "user": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/User"
+              }
+            ],
+            "readOnly": true
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "total_price_at_purchase": {
+            "type": "string",
+            "format": "decimal",
+            "pattern": "^-?\\d{0,8}(?:\\.\\d{0,2})?$",
+            "readOnly": true
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/StatusEnum"
+              }
+            ],
+            "readOnly": true
+          },
+          "notes": {
+            "type": "string"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PurchaseItem"
+            },
+            "readOnly": true
+          }
+        },
+        "required": [
+          "id",
+          "items",
+          "status",
+          "timestamp",
+          "total_price_at_purchase",
+          "user"
+        ]
+      },
+      "PurchaseCreate": {
+        "type": "object",
+        "description": "Serializer for creating a purchase with items.",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PurchaseItemCreate"
+            }
+          },
+          "notes": {
+            "type": "string",
+            "default": ""
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "PurchaseCreateRequest": {
+        "type": "object",
+        "description": "Serializer for creating a purchase with items.",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PurchaseItemCreateRequest"
+            }
+          },
+          "notes": {
+            "type": "string",
+            "default": ""
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "PurchaseItem": {
+        "type": "object",
+        "description": "Serializer for PurchaseItem model.",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "readOnly": true
+          },
+          "dish": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DishList"
+              }
+            ],
+            "readOnly": true
+          },
+          "quantity": {
+            "type": "integer",
+            "maximum": 9223372036854775807,
+            "minimum": 0,
+            "format": "int64"
+          },
+          "price_at_purchase": {
+            "type": "string",
+            "format": "decimal",
+            "pattern": "^-?\\d{0,8}(?:\\.\\d{0,2})?$",
+            "readOnly": true,
+            "description": "Price per unit at time of purchase"
+          },
+          "subtotal": {
+            "type": "string",
+            "format": "decimal",
+            "pattern": "^-?\\d{0,8}(?:\\.\\d{0,2})?$",
+            "readOnly": true,
+            "description": "Auto-calculated: quantity * price_at_purchase"
+          }
+        },
+        "required": [
+          "dish",
+          "id",
+          "price_at_purchase",
+          "quantity",
+          "subtotal"
+        ]
+      },
+      "PurchaseItemCreate": {
+        "type": "object",
+        "description": "Serializer for creating purchase items.",
+        "properties": {
+          "dish_id": {
+            "type": "integer"
+          },
+          "quantity": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "required": [
+          "dish_id",
+          "quantity"
+        ]
+      },
+      "PurchaseItemCreateRequest": {
+        "type": "object",
+        "description": "Serializer for creating purchase items.",
+        "properties": {
+          "dish_id": {
+            "type": "integer"
+          },
+          "quantity": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "required": [
+          "dish_id",
+          "quantity"
+        ]
+      },
+      "PurchaseList": {
+        "type": "object",
+        "description": "Lightweight serializer for purchase lists.",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "readOnly": true
+          },
+          "user": {
+            "type": "string",
+            "readOnly": true
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "readOnly": true
+          },
+          "total_price_at_purchase": {
+            "type": "string",
+            "format": "decimal",
+            "pattern": "^-?\\d{0,8}(?:\\.\\d{0,2})?$"
+          },
+          "status": {
+            "$ref": "#/components/schemas/StatusEnum"
+          },
+          "item_count": {
+            "type": "string",
+            "readOnly": true
+          }
+        },
+        "required": [
+          "id",
+          "item_count",
+          "timestamp",
+          "user"
+        ]
+      },
+      "RecipeRequirement": {
+        "type": "object",
+        "description": "Serializer for RecipeRequirement model.",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "readOnly": true
+          },
+          "ingredient": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/IngredientList"
+              }
+            ],
+            "readOnly": true
+          },
+          "quantity_required": {
+            "type": "string",
+            "format": "decimal",
+            "pattern": "^-?\\d{0,8}(?:\\.\\d{0,2})?$",
+            "description": "Quantity needed (matches ingredient unit)"
+          }
+        },
+        "required": [
+          "id",
+          "ingredient",
+          "quantity_required"
+        ]
+      },
+      "RecipeRequirementCreateRequest": {
+        "type": "object",
+        "description": "Serializer for creating recipe requirements.",
+        "properties": {
+          "ingredient": {
+            "type": "integer"
+          },
+          "quantity_required": {
+            "type": "string",
+            "format": "decimal",
+            "pattern": "^-?\\d{0,8}(?:\\.\\d{0,2})?$",
+            "description": "Quantity needed (matches ingredient unit)"
+          }
+        },
+        "required": [
+          "ingredient",
+          "quantity_required"
+        ]
+      },
+      "StatusEnum": {
+        "enum": [
+          "completed",
+          "cancelled"
+        ],
+        "type": "string",
+        "description": "* `completed` - Completed\n* `cancelled` - Cancelled"
+      },
+      "TokenObtainPair": {
+        "type": "object",
+        "properties": {
+          "access": {
+            "type": "string",
+            "readOnly": true
+          },
+          "refresh": {
+            "type": "string",
+            "readOnly": true
+          }
+        },
+        "required": [
+          "access",
+          "refresh"
+        ]
+      },
+      "TokenObtainPairRequest": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string",
+            "writeOnly": true,
+            "minLength": 1
+          },
+          "password": {
+            "type": "string",
+            "writeOnly": true,
+            "minLength": 1
+          }
+        },
+        "required": [
+          "password",
+          "username"
+        ]
+      },
+      "TokenRefresh": {
+        "type": "object",
+        "properties": {
+          "access": {
+            "type": "string",
+            "readOnly": true
+          },
+          "refresh": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "access",
+          "refresh"
+        ]
+      },
+      "TokenRefreshRequest": {
+        "type": "object",
+        "properties": {
+          "refresh": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "refresh"
+        ]
+      },
+      "TokenVerifyRequest": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "writeOnly": true,
+            "minLength": 1
+          }
+        },
+        "required": [
+          "token"
+        ]
+      },
+      "Unit": {
+        "type": "object",
+        "description": "Serializer for Unit model.",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "readOnly": true
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 50
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "is_active": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "description",
+          "id",
+          "name"
+        ]
+      },
+      "UnitRequest": {
+        "type": "object",
+        "description": "Serializer for Unit model.",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 50
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "is_active": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "description",
+          "name"
+        ]
+      },
+      "User": {
+        "type": "object",
+        "description": "Serializer for User model (read-only, excludes sensitive fields).",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "readOnly": true
+          },
+          "username": {
+            "type": "string",
+            "readOnly": true,
+            "description": "Required. 150 characters or fewer. Letters, digits and @/./+/-/_ only."
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "readOnly": true,
+            "title": "Email address"
+          },
+          "is_staff": {
+            "type": "boolean",
+            "readOnly": true,
+            "title": "Staff status",
+            "description": "Designates whether the user can log into this admin site."
+          },
+          "is_superuser": {
+            "type": "boolean",
+            "readOnly": true,
+            "title": "Superuser status",
+            "description": "Designates that this user has all permissions without explicitly assigning them."
+          },
+          "date_joined": {
+            "type": "string",
+            "format": "date-time",
+            "readOnly": true
+          }
+        },
+        "required": [
+          "date_joined",
+          "email",
+          "id",
+          "is_staff",
+          "is_superuser",
+          "username"
+        ]
+      }
+    },
+    "securitySchemes": {
+      "cookieAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "sessionid"
+      },
+      "jwtAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "auth",
+      "description": "Authentication endpoints"
+    },
+    {
+      "name": "units",
+      "description": "Unit of measurement management"
+    },
+    {
+      "name": "ingredients",
+      "description": "Ingredient inventory management"
+    },
+    {
+      "name": "dishes",
+      "description": "Dish/menu item management"
+    },
+    {
+      "name": "menus",
+      "description": "Composite menu management"
+    },
+    {
+      "name": "purchases",
+      "description": "Order/purchase management"
+    },
+    {
+      "name": "dashboard",
+      "description": "Analytics and reporting"
+    }
+  ]
+}

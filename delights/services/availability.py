@@ -19,9 +19,10 @@ def check_dish_availability(dish: Dish) -> bool:
     Returns:
         True if available, False otherwise
     """
-    requirements = dish.recipe_requirements.select_related("ingredient")
+    # Use all() instead of select_related to leverage prefetched data if available
+    requirements = dish.recipe_requirements.all()
 
-    if not requirements.exists():
+    if not requirements:
         return False
 
     for requirement in requirements:

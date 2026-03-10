@@ -117,9 +117,9 @@ class Ingredient(models.Model):
         """Validate model data."""
         from django.core.exceptions import ValidationError
 
-        if self.price_per_unit < 0:
+        if self.price_per_unit is not None and self.price_per_unit < 0:
             raise ValidationError({"price_per_unit": "Price cannot be negative."})
-        if self.quantity_available < 0:
+        if self.quantity_available is not None and self.quantity_available < 0:
             raise ValidationError(
                 {"quantity_available": "Quantity cannot be negative."}
             )
@@ -219,9 +219,9 @@ class Dish(models.Model):
         """Validate model data."""
         from django.core.exceptions import ValidationError
 
-        if self.price < 0:
+        if self.price is not None and self.price < 0:
             raise ValidationError({"price": "Price cannot be negative."})
-        if self.cost < 0:
+        if self.cost is not None and self.cost < 0:
             raise ValidationError({"cost": "Cost cannot be negative."})
 
     def __str__(self) -> str:

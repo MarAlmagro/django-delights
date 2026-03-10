@@ -72,6 +72,17 @@ def ingredient_milk(db, unit_liter):
 
 
 @pytest.fixture
+def ingredient(db, unit_gram):
+    """Create a generic ingredient for testing."""
+    return Ingredient.objects.create(
+        name="Test Ingredient",
+        unit=unit_gram,
+        price_per_unit=Decimal("1.00"),
+        quantity_available=Decimal("50.00"),
+    )
+
+
+@pytest.fixture
 def dish_cookie(db):
     """Create a cookie dish without recipe requirements."""
     return Dish.objects.create(
@@ -100,6 +111,29 @@ def dish_with_recipe(db, dish_cookie, ingredient_flour, ingredient_sugar):
 
 
 @pytest.fixture
+def dish(db):
+    """Create a generic dish for testing."""
+    return Dish.objects.create(
+        name="Test Dish",
+        description="A test dish",
+        cost=Decimal("5.00"),
+        price=Decimal("10.00"),
+        is_available=True,
+    )
+
+
+@pytest.fixture
+def dish_with_requirements(db, dish, ingredient):
+    """Create a dish with recipe requirements for testing."""
+    RecipeRequirement.objects.create(
+        dish=dish,
+        ingredient=ingredient,
+        quantity_required=Decimal("10.00"),
+    )
+    return dish
+
+
+@pytest.fixture
 def menu_combo(db, dish_cookie):
     """Create a combo menu."""
     menu = Menu.objects.create(
@@ -111,6 +145,32 @@ def menu_combo(db, dish_cookie):
     )
     menu.dishes.add(dish_cookie)
     return menu
+
+
+@pytest.fixture
+def menu_with_dishes(db, dish):
+    """Create a menu with dishes for testing."""
+    menu = Menu.objects.create(
+        name="Test Menu",
+        description="A test menu",
+        cost=Decimal("10.00"),
+        price=Decimal("15.00"),
+        is_available=True,
+    )
+    menu.dishes.add(dish)
+    return menu
+
+
+@pytest.fixture
+def menu(db):
+    """Create a generic menu for testing."""
+    return Menu.objects.create(
+        name="Generic Menu",
+        description="A generic menu",
+        cost=Decimal("0.00"),
+        price=Decimal("0.00"),
+        is_available=False,
+    )
 
 
 @pytest.fixture
@@ -165,16 +225,34 @@ def purchase(db, admin_user, dish_cookie):
 
 
 @pytest.fixture
+def purchase_with_items(db, admin_user, dish):
+    """Create a purchase with multiple items for testing."""
+    purchase = Purchase.objects.create(
+        user=admin_user,
+        total_price_at_purchase=Decimal("20.00"),
+        status=Purchase.STATUS_COMPLETED,
+    )
+    PurchaseItem.objects.create(
+        purchase=purchase,
+        dish=dish,
+        quantity=2,
+        price_at_purchase=Decimal("10.00"),
+        subtotal=Decimal("20.00"),
+    )
+    return purchase
+
+
+@pytest.fixture
 def client_logged_in_admin(client, admin_user):
     """Return a client logged in as admin."""
-    client.login(username="admin", password="adminpass123")
+    client.force_login(admin_user)
     return client
 
 
 @pytest.fixture
 def client_logged_in_staff(client, staff_user):
     """Return a client logged in as staff."""
-    client.login(username="staff", password="staffpass123")
+    client.force_login(staff_user)
     return client
 
 
@@ -197,4 +275,11 @@ def api_client_admin(api_client, admin_user):
 def api_client_staff(api_client, staff_user):
     """Return an API client authenticated as staff."""
     api_client.force_authenticate(user=staff_user)
+    return api_client
+
+
+@pytest.fixture
+def api_client_user(api_client, regular_user):
+    """Return an API client authenticated as regular user."""
+    api_client.force_authenticate(user=regular_user)
     return api_client

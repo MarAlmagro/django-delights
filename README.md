@@ -46,7 +46,7 @@ A production-ready restaurant inventory and ordering management system built wit
 - **Atomic Transactions** — Row-level locking (`select_for_update`) to prevent race conditions
 - **Production-Ready Docker** — Multi-stage builds with Gunicorn, Nginx, PostgreSQL, and Redis
 - **CI/CD** — GitHub Actions with linting, testing, security scanning, and Docker image builds
-- **Test Suite** — Unit, view, and integration tests with pytest and factory-boy
+- **Comprehensive Test Suite** — Unit, integration, E2E (Playwright), concurrency, API contract, and load tests (Locust)
 
 ---
 
@@ -59,7 +59,7 @@ A production-ready restaurant inventory and ordering management system built wit
 | API Authentication | SimpleJWT (access + refresh tokens) |
 | API Documentation | drf-spectacular (OpenAPI 3.0, Swagger UI, ReDoc) |
 | Database | SQLite (development) / PostgreSQL 15 (production) |
-| Testing | pytest, pytest-django, pytest-cov, factory-boy |
+| Testing | pytest, pytest-django, pytest-cov, factory-boy, pytest-playwright, locust |
 | Code Quality | black, flake8, isort, mypy, bandit, pre-commit |
 | Containers | Docker (multi-stage), Docker Compose |
 | Production Server | Gunicorn + WhiteNoise |
@@ -207,11 +207,16 @@ django-delights/
 │   │   ├── urls.py              # API routing
 │   │   └── permissions.py       # Custom permissions
 │   ├── tests/                   # Test suite
+│   │   ├── e2e/                 # E2E tests with Playwright
+│   │   ├── snapshots/           # API schema snapshots
 │   │   ├── conftest.py          # Pytest fixtures
 │   │   ├── factories.py         # Factory Boy factories
 │   │   ├── test_models.py       # Model tests
 │   │   ├── test_views.py        # View tests
-│   │   └── test_integration.py  # Integration tests
+│   │   ├── test_integration.py  # Integration tests
+│   │   ├── test_concurrency.py  # Concurrency tests
+│   │   ├── test_api_schema.py   # API contract tests
+│   │   └── test_edge_cases.py   # Edge case tests
 │   ├── fixtures/                # Sample data for development
 │   ├── models.py                # Data models (7 models)
 │   ├── views.py                 # Web views (CBV + FBV)
@@ -296,16 +301,37 @@ django-delights/
 
 ## Testing & Code Quality
 
+### Test Suite
+
+The project includes comprehensive testing:
+
+- **Unit Tests** — Model, view, and service layer tests
+- **Integration Tests** — Component interaction tests
+- **E2E Tests** — Browser-based tests with Playwright
+- **Concurrency Tests** — Race condition and locking tests
+- **API Contract Tests** — Schema stability tests
+- **Load Tests** — Performance testing with Locust
+- **Edge Case Tests** — Boundary conditions and special cases
+
 ```bash
 # Run all tests
 pytest
 
-# Run with coverage
+# Run with coverage (target: >80%)
 pytest --cov=delights --cov-report=html
 
-# Run specific tests
+# Run specific test types
 pytest delights/tests/test_models.py -v
 pytest -m integration
+pytest -m e2e                           # E2E tests (requires Playwright)
+pytest delights/tests/test_concurrency.py
+
+# E2E tests with Playwright
+playwright install                      # First time setup
+pytest delights/tests/e2e/ -v -m e2e
+
+# Load testing
+locust --headless -u 10 -r 2 -t 60s --host http://localhost:8000
 
 # Code quality
 pre-commit run --all-files   # All checks
@@ -315,7 +341,7 @@ flake8 .                      # Linting
 mypy delights/                # Type checking
 ```
 
-See **[docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)** for full details.
+See **[docs/TESTING.md](docs/TESTING.md)** for comprehensive testing guide and **[docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)** for development details.
 
 ---
 
